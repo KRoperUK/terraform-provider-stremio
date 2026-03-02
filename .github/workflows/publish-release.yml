@@ -116,7 +116,6 @@ jobs:
                   else
                     gpg --batch --yes --detach-sign --output "${SIG_FILE}" "${SUMS_FILE}"
                   fi
-
             - name: Create draft release with assets
               if: steps.release_exists.outputs.exists != 'true'
               uses: softprops/action-gh-release@v2
