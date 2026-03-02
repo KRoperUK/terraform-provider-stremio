@@ -88,6 +88,35 @@ jobs:
 
                   (cd dist && sha256sum *.zip > "terraform-provider-stremio_${VERSION}_SHA256SUMS")
 
+            - name: Import GPG private key
+              if: steps.release_exists.outputs.exists != 'true'
+              env:
+                  GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+              run: |
+                  set -euo pipefail
+                  if [ -z "${GPG_PRIVATE_KEY}" ]; then
+                    echo "Missing required secret: GPG_PRIVATE_KEY"
+                    exit 1
+                  fi
+                  printf '%s' "${GPG_PRIVATE_KEY}" | gpg --batch --import
+
+            - name: Sign SHA256SUMS
+              if: steps.release_exists.outputs.exists != 'true'
+              env:
+                  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+              run: |
+                  set -euo pipefail
+                  VERSION="${TAG_NAME#v}"
+                  SUMS_FILE="dist/terraform-provider-stremio_${VERSION}_SHA256SUMS"
+                  SIG_FILE="dist/terraform-provider-stremio_${VERSION}_SHA256SUMS.sig"
+
+                  if [ -n "${GPG_PASSPHRASE}" ]; then
+                    gpg --batch --yes --pinentry-mode loopback --passphrase "${GPG_PASSPHRASE}" \
+                      --detach-sign --output "${SIG_FILE}" "${SUMS_FILE}"
+                  else
+                    gpg --batch --yes --detach-sign --output "${SIG_FILE}" "${SUMS_FILE}"
+                  fi
+
             - name: Create draft release with assets
               if: steps.release_exists.outputs.exists != 'true'
               uses: softprops/action-gh-release@v2
@@ -98,6 +127,7 @@ jobs:
                   files: |
                       dist/*.zip
                       dist/*_SHA256SUMS
+                      dist/*_SHA256SUMS.sig
 
             - name: Publish release
               if: steps.release_exists.outputs.exists != 'true'

@@ -13,9 +13,6 @@ permissions:
 jobs:
     release-please:
         runs-on: ubuntu-latest
-        outputs:
-            release_created: ${{ steps.release.outputs.release_created }}
-            tag_name: ${{ steps.release.outputs.tag_name }}
         steps:
             - name: Run release-please
               id: release
@@ -25,10 +22,32 @@ jobs:
                   manifest-file: .release-please-manifest.json
                   skip-github-release: true
 
-    publish-release:
+    create-tag-from-release-commit:
         needs: release-please
-        if: ${{ needs.release-please.outputs.release_created == 'true' }}
-        uses: ./.github/workflows/publish-release.yml
-        with:
-            tag: ${{ needs.release-please.outputs.tag_name }}
-        secrets: inherit
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Create tag from release commit
+              run: |
+                  set -euo pipefail
+
+                  SUBJECT="$(git log -1 --pretty=%s)"
+                  if [[ ! "${SUBJECT}" =~ ^chore\(main\):\ release\ ([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+                    echo "Latest commit is not a release commit: ${SUBJECT}"
+                    exit 0
+                  fi
+
+                  TAG="v${BASH_REMATCH[1]}"
+                  echo "Detected release tag: ${TAG}"
+
+                  if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+                    echo "Tag ${TAG} already exists on origin."
+                    exit 0
+                  fi
+
+                  git tag "${TAG}" "${GITHUB_SHA}"
+                  git push origin "${TAG}"
