@@ -13,9 +13,6 @@ permissions:
 jobs:
     release-please:
         runs-on: ubuntu-latest
-        outputs:
-            release_created: ${{ steps.release.outputs.release_created }}
-            tag_name: ${{ steps.release.outputs.tag_name }}
         steps:
             - name: Run release-please
               id: release
@@ -23,61 +20,4 @@ jobs:
               with:
                   config-file: release-please-config.json
                   manifest-file: .release-please-manifest.json
-
-    build-and-upload-assets:
-        needs: release-please
-        if: ${{ needs.release-please.outputs.release_created == 'true' }}
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-
-            - name: Setup Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version-file: go.mod
-
-            - name: Build release assets
-              env:
-                  TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
-              run: |
-                  set -euo pipefail
-                  VERSION="${TAG_NAME#v}"
-                  mkdir -p dist
-
-                  for target in \
-                    linux/amd64 \
-                    linux/arm64 \
-                    darwin/amd64 \
-                    darwin/arm64 \
-                    windows/amd64; do
-                    GOOS="${target%/*}"
-                    GOARCH="${target#*/}"
-                    BIN="terraform-provider-stremio_v${VERSION}_${GOOS}_${GOARCH}"
-                    EXT=""
-                    if [ "${GOOS}" = "windows" ]; then
-                      EXT=".exe"
-                    fi
-
-                    GOOS="${GOOS}" GOARCH="${GOARCH}" CGO_ENABLED=0 \
-                      go build -ldflags "-s -w -X main.version=${VERSION}" -o "dist/${BIN}${EXT}" .
-
-                    if [ "${GOOS}" = "windows" ]; then
-                      (cd dist && zip "${BIN}.zip" "${BIN}.exe")
-                      rm -f "dist/${BIN}.exe"
-                    else
-                      tar -C dist -czf "dist/${BIN}.tar.gz" "${BIN}"
-                      rm -f "dist/${BIN}"
-                    fi
-                  done
-
-                  (cd dist && sha256sum * > checksums.txt)
-
-            - name: Upload assets to GitHub release
-              uses: softprops/action-gh-release@v2
-              with:
-                  tag_name: ${{ needs.release-please.outputs.tag_name }}
-                  files: |
-                      dist/*.tar.gz
-                      dist/*.zip
-                      dist/checksums.txt
+                  skip-github-release: true
