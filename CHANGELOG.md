@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/KRoperUK/terraform-provider-stremio/compare/v0.4.0...v0.5.0) (2026-03-02)
+
+
+### Features
+
+* publish to tf reg ([#12](https://github.com/KRoperUK/terraform-provider-stremio/issues/12)) ([d777e07](https://github.com/KRoperUK/terraform-provider-stremio/commit/d777e07c2f7b79b3412e332e8374363bf7821e87))
+
 ## [0.4.0](https://github.com/KRoperUK/terraform-provider-stremio/compare/v0.3.0...v0.4.0) (2026-03-02)
 
 
