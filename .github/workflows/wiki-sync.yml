@@ -14,7 +14,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v4
 
             - name: Sync docs/wiki to GitHub Wiki
               env:
@@ -31,7 +31,7 @@ jobs:
 
                   git clone "https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.wiki.git" wiki
 
-                  rsync -av --delete docs/wiki/ wiki/
+                  rsync -av --delete --exclude='.git/' docs/wiki/ wiki/
 
                   git -C wiki config user.name "github-actions[bot]"
                   git -C wiki config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -44,4 +44,14 @@ jobs:
                   fi
 
                   git -C wiki commit -m "docs(wiki): sync from ${COMMIT_SHA}"
-                  git -C wiki push origin master
+
+                  WIKI_BRANCH="$(git -C wiki symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')"
+                  if [ -z "${WIKI_BRANCH}" ]; then
+                    if git -C wiki show-ref --verify --quiet refs/remotes/origin/main; then
+                      WIKI_BRANCH="main"
+                    else
+                      WIKI_BRANCH="master"
+                    fi
+                  fi
+                  echo "Pushing wiki changes to branch: ${WIKI_BRANCH}"
+                  git -C wiki push origin "HEAD:${WIKI_BRANCH}"
