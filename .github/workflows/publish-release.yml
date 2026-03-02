@@ -1,112 +1,112 @@
 name: publish-release
 
 on:
-  push:
-    tags:
-      - "v*"
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Existing git tag to publish (e.g. v0.2.1)"
-        required: false
-        type: string
-  workflow_call:
-    inputs:
-      tag:
-        description: "Release tag to publish"
-        required: true
-        type: string
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: "Existing git tag to publish (e.g. v0.2.1)"
+                required: false
+                type: string
+    workflow_call:
+        inputs:
+            tag:
+                description: "Release tag to publish"
+                required: true
+                type: string
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-    env:
-      TAG_NAME: ${{ (github.event_name == 'workflow_call' && inputs.tag) || (github.event_name == 'workflow_dispatch' && inputs.tag) || github.ref_name }}
-    steps:
-      - name: Validate tag
-        run: |
-          set -euo pipefail
-          if ! echo "${TAG_NAME}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.].*)?$'; then
-            echo "Invalid TAG_NAME='${TAG_NAME}'. Expected semver tag like v0.2.1"
-            exit 1
-          fi
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.TAG_NAME }}
-
-      - name: Check if release already exists
-        id: release_exists
+    publish:
+        runs-on: ubuntu-latest
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          if gh release view "${TAG_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
+            TAG_NAME: ${{ (github.event_name == 'workflow_call' && inputs.tag) || (github.event_name == 'workflow_dispatch' && inputs.tag) || github.ref_name }}
+        steps:
+            - name: Validate tag
+              run: |
+                  set -euo pipefail
+                  if ! echo "${TAG_NAME}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.].*)?$'; then
+                    echo "Invalid TAG_NAME='${TAG_NAME}'. Expected semver tag like v0.2.1"
+                    exit 1
+                  fi
 
-      - name: Setup Go
-        if: steps.release_exists.outputs.exists != 'true'
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ env.TAG_NAME }}
 
-      - name: Build release assets
-        if: steps.release_exists.outputs.exists != 'true'
-        run: |
-          set -euo pipefail
-          VERSION="${TAG_NAME#v}"
-          mkdir -p dist
+            - name: Check if release already exists
+              id: release_exists
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  if gh release view "${TAG_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+                    echo "exists=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "exists=false" >> "$GITHUB_OUTPUT"
+                  fi
 
-          for target in \
-            linux/amd64 \
-            linux/arm64 \
-            darwin/amd64 \
-            darwin/arm64 \
-            windows/amd64; do
-            GOOS="${target%/*}"
-            GOARCH="${target#*/}"
-            BIN="terraform-provider-stremio_v${VERSION}"
-            ARCHIVE="terraform-provider-stremio_${VERSION}_${GOOS}_${GOARCH}.zip"
-            EXT=""
-            if [ "${GOOS}" = "windows" ]; then
-              EXT=".exe"
-            fi
+            - name: Setup Go
+              if: steps.release_exists.outputs.exists != 'true'
+              uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
 
-            GOOS="${GOOS}" GOARCH="${GOARCH}" CGO_ENABLED=0 \
-              go build -ldflags "-s -w -X main.version=${VERSION}" -o "dist/${BIN}${EXT}" .
+            - name: Build release assets
+              if: steps.release_exists.outputs.exists != 'true'
+              run: |
+                  set -euo pipefail
+                  VERSION="${TAG_NAME#v}"
+                  mkdir -p dist
 
-            (cd dist && zip -q "${ARCHIVE}" "${BIN}${EXT}")
-            rm -f "dist/${BIN}${EXT}"
-          done
+                  for target in \
+                    linux/amd64 \
+                    linux/arm64 \
+                    darwin/amd64 \
+                    darwin/arm64 \
+                    windows/amd64; do
+                    GOOS="${target%/*}"
+                    GOARCH="${target#*/}"
+                    BIN="terraform-provider-stremio_v${VERSION}"
+                    ARCHIVE="terraform-provider-stremio_${VERSION}_${GOOS}_${GOARCH}.zip"
+                    EXT=""
+                    if [ "${GOOS}" = "windows" ]; then
+                      EXT=".exe"
+                    fi
 
-          (cd dist && sha256sum *.zip > "terraform-provider-stremio_${VERSION}_SHA256SUMS")
+                    GOOS="${GOOS}" GOARCH="${GOARCH}" CGO_ENABLED=0 \
+                      go build -ldflags "-s -w -X main.version=${VERSION}" -o "dist/${BIN}${EXT}" .
 
-      - name: Create draft release with assets
-        if: steps.release_exists.outputs.exists != 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.TAG_NAME }}
-          draft: true
-          generate_release_notes: true
-          files: |
-            dist/*.zip
-            dist/*_SHA256SUMS
+                    (cd dist && zip -q "${ARCHIVE}" "${BIN}${EXT}")
+                    rm -f "dist/${BIN}${EXT}"
+                  done
 
-      - name: Publish release
-        if: steps.release_exists.outputs.exists != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          gh release edit "${TAG_NAME}" --repo "${GITHUB_REPOSITORY}" --draft=false
+                  (cd dist && sha256sum *.zip > "terraform-provider-stremio_${VERSION}_SHA256SUMS")
 
-      - name: Skip (release already exists)
-        if: steps.release_exists.outputs.exists == 'true'
-        run: echo "Release ${TAG_NAME} already exists; skipping publish job."
+            - name: Create draft release with assets
+              if: steps.release_exists.outputs.exists != 'true'
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ env.TAG_NAME }}
+                  draft: true
+                  generate_release_notes: true
+                  files: |
+                      dist/*.zip
+                      dist/*_SHA256SUMS
+
+            - name: Publish release
+              if: steps.release_exists.outputs.exists != 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  gh release edit "${TAG_NAME}" --repo "${GITHUB_REPOSITORY}" --draft=false
+
+            - name: Skip (release already exists)
+              if: steps.release_exists.outputs.exists == 'true'
+              run: echo "Release ${TAG_NAME} already exists; skipping publish job."
