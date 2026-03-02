@@ -8,3 +8,4 @@
 **/.terraform.lock.hcl
 *.log
 terraform-provider-stremio
+.venv/

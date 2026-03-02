@@ -152,4 +152,3 @@ How it works:
 - Push conventional commits to `main`.
 - Release Please opens/updates a release PR with version/changelog updates.
 - Merge the release PR to create a GitHub release and upload provider binaries + `checksums.txt`.
-
