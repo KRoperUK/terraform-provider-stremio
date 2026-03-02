@@ -143,12 +143,18 @@ If accounts already exist, keep `create_accounts = false`.
 
 This repository uses Release Please via GitHub Actions:
 
-- Workflow: [.github/workflows/release-please.yml](.github/workflows/release-please.yml)
+- Versioning workflow: [.github/workflows/release-please.yml](.github/workflows/release-please.yml)
+- Publish workflow: [.github/workflows/publish-release.yml](.github/workflows/publish-release.yml)
 - Config: [release-please-config.json](release-please-config.json)
 - Manifest: [.release-please-manifest.json](.release-please-manifest.json)
 
 How it works:
 
 - Push conventional commits to `main`.
-- Release Please opens/updates a release PR with version/changelog updates.
-- Merge the release PR to create a GitHub release and upload provider binaries + `checksums.txt`.
+- Release Please opens/updates a release PR with version/changelog updates and creates the version tag.
+- Tag pushes (`v*`) run the publish workflow, which creates a draft release, uploads Terraform Registry-compatible artifacts (`*.zip` + `*_SHA256SUMS`), then publishes the release.
+
+Terraform Public Registry publication:
+
+- One-time setup: publish this provider in the Terraform Registry UI for source `kroperuk/stremio` pointing to this GitHub repository.
+- After onboarding, each new GitHub release created by this workflow is picked up by the registry automatically.
