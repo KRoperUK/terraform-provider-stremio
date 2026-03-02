@@ -40,14 +40,15 @@ jobs:
                   set -euo pipefail
 
                   SUBJECT="$(git log -1 --pretty=%s)"
-                  if [[ ! "${SUBJECT}" =~ ^chore\(main\):\ release\ ([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+                                    VERSION="$(printf '%s' "${SUBJECT}" | sed -nE 's/^chore\(main\): release ([0-9]+\.[0-9]+\.[0-9]+)( \(#[0-9]+\))?$/\1/p')"
+                                    if [ -z "${VERSION}" ]; then
                     echo "Latest commit is not a release commit: ${SUBJECT}"
                     echo "created=false" >> "$GITHUB_OUTPUT"
                     echo "tag=" >> "$GITHUB_OUTPUT"
                     exit 0
                   fi
 
-                  TAG="v${BASH_REMATCH[1]}"
+                                    TAG="v${VERSION}"
                   echo "Detected release tag: ${TAG}"
 
                   if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
