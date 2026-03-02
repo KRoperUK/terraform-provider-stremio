@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+**/*.tfstate
+**/*.backup
+**/*.tfvars
+**/.terraform/
+**/.terraform.lock.hcl
+*.log
+terraform-provider-stremio

@@ -1,0 +1,71 @@
+name: ci
+
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+
+permissions:
+    contents: read
+
+jobs:
+    pre-commit:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+
+            - name: Setup Python
+              id: setup-python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.12"
+                  cache: pip
+
+            - name: Cache pre-commit
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/pre-commit
+                  key: pre-commit|${{ runner.os }}|${{ steps.setup-python.outputs.python-version }}|${{ hashFiles('.pre-commit-config.yaml') }}
+                  restore-keys: |
+                      pre-commit|${{ runner.os }}|${{ steps.setup-python.outputs.python-version }}|
+
+            - name: Install pre-commit
+              run: |
+                  python -m pip install --upgrade pip
+                  python -m pip install pre-commit
+
+            - name: Determine changed files from default branch
+              id: changed
+              env:
+                  DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+              run: |
+                  set -euo pipefail
+                  git fetch origin "${DEFAULT_BRANCH}" --depth=1
+
+                  CHANGED_FILES="$(git diff --name-only --diff-filter=ACMR "origin/${DEFAULT_BRANCH}...HEAD" | tr '\n' ' ')"
+
+                  if [ -z "${CHANGED_FILES}" ]; then
+                    echo "has_changes=false" >> "$GITHUB_OUTPUT"
+                    echo "files=" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+
+                  echo "has_changes=true" >> "$GITHUB_OUTPUT"
+                  echo "files=${CHANGED_FILES}" >> "$GITHUB_OUTPUT"
+
+            - name: Run pre-commit on changed files
+              if: steps.changed.outputs.has_changes == 'true'
+              run: |
+                  set -euo pipefail
+                  pre-commit run --show-diff-on-failure --color=always --files ${{ steps.changed.outputs.files }}
+
+            - name: Skip (no changed files)
+              if: steps.changed.outputs.has_changes != 'true'
+              run: echo "No changed files against default branch; skipping pre-commit."

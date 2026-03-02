@@ -1,0 +1,19 @@
+create_accounts = false
+
+accounts = {
+  primary = {
+    email    = "your-primary-email@example.com"
+    password = "your-primary-password"
+  }
+
+  secondary = {
+    email    = "your-secondary-email@example.com"
+    password = "your-secondary-password"
+  }
+}
+
+shared_transport_urls = [
+  "https://v3-cinemeta.strem.io/manifest.json",
+  "https://opensubtitles-v3.strem.io/manifest.json",
+  "https://your-addon.example.com/manifest.json"
+]
