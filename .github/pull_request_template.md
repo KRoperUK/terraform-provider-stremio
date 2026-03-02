@@ -35,7 +35,7 @@ Closes #
 
 <!-- Write one concise bullet suitable for changelog/release notes -->
 
-- 
+-
 
 ## Checklist
 
