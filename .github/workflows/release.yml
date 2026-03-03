@@ -66,6 +66,23 @@ jobs:
                   echo "should_release=true" >> "$GITHUB_OUTPUT"
                   echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
 
+            - name: Update release PR labels
+              if: steps.prepare.outputs.should_release == 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+
+                  PR_NUMBER="$(gh api -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '.[] | select(.merged_at != null) | .number' | head -n1 || true)"
+
+                  if [ -z "${PR_NUMBER}" ]; then
+                      echo "No merged PR associated with commit ${GITHUB_SHA}; skipping label update."
+                      exit 0
+                  fi
+
+                  gh pr edit "${PR_NUMBER}" --remove-label "autorelease: pending" || true
+                  gh pr edit "${PR_NUMBER}" --add-label "autorelease: tagged" || true
+
     goreleaser:
         needs: prepare-tag
         if: needs.prepare-tag.outputs.should_release == 'true'
