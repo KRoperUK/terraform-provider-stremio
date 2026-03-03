@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.0.0...v1.0.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* **release:** update workflows for proper release triggering ([#18](https://github.com/KRoperUK/terraform-provider-stremio/issues/18)) ([e95b90a](https://github.com/KRoperUK/terraform-provider-stremio/commit/e95b90a4d496125f83e4c383d46c25a79735157c))
+
 ## 1.0.0 (2026-03-03)
 
 
