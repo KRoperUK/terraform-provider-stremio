@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.2.0...v1.3.0) (2026-03-03)
+
+
+### Features
+
+* **provider:** add watch history and continue watching data sources ([#25](https://github.com/KRoperUK/terraform-provider-stremio/issues/25)) ([55ff4ef](https://github.com/KRoperUK/terraform-provider-stremio/commit/55ff4ef13cea6a1a3ef38a9d825aca8a8f48c5a9))
+
 ## [1.2.0](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.1.0...v1.2.0) (2026-03-03)
 
 
