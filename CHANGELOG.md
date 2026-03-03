@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.4.0...v1.5.0) (2026-03-03)
+
+
+### Features
+
+* **provider:** relocate addon collection management to account resource ([#29](https://github.com/KRoperUK/terraform-provider-stremio/issues/29)) ([275a4da](https://github.com/KRoperUK/terraform-provider-stremio/commit/275a4dac00570c1d5f32bb9b4ebdd71e31e69a17))
+
 ## [1.4.0](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.3.0...v1.4.0) (2026-03-03)
 
 
