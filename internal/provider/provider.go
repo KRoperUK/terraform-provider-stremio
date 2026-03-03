@@ -37,23 +37,23 @@ func (p *stremioProvider) Metadata(_ context.Context, _ provider.MetadataRequest
 
 func (p *stremioProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Terraform provider for managing Stremio account-level operations.",
-		MarkdownDescription: "Terraform provider for Stremio account operations, including authentication, account management, and addon collection management.",
+		Description:         "Terraform provider for managing Stremio account-level operations.",
+		MarkdownDescription: "Terraform provider for Stremio account operations, including authentication, account management, and addon collection management.\n\n## Example Usage\n\n```hcl\nprovider \"stremio\" {\n  base_url = \"https://api.strem.io\"\n  email    = var.stremio_email\n  password = var.stremio_password\n}\n```",
 		Attributes: map[string]schema.Attribute{
 			"base_url": schema.StringAttribute{
-				Optional:    true,
-				Description: "Stremio API base URL.",
+				Optional:            true,
+				Description:         "Stremio API base URL.",
 				MarkdownDescription: "Base URL for the Stremio API. Defaults to `https://api.strem.io`.",
 			},
 			"email": schema.StringAttribute{
-				Optional:    true,
-				Description: "Email used to authenticate against Stremio.",
+				Optional:            true,
+				Description:         "Email used to authenticate against Stremio.",
 				MarkdownDescription: "Account email used for provider-level authentication.",
 			},
 			"password": schema.StringAttribute{
-				Optional:    true,
-				Sensitive:   true,
-				Description: "Password used to authenticate against Stremio.",
+				Optional:            true,
+				Sensitive:           true,
+				Description:         "Password used to authenticate against Stremio.",
 				MarkdownDescription: "Account password used for provider-level authentication.",
 			},
 		},
@@ -108,5 +108,7 @@ func (p *stremioProvider) Resources(_ context.Context) []func() resource.Resourc
 func (p *stremioProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewInstalledAddonsDataSource,
+		NewWatchHistoryDataSource,
+		NewContinueWatchingDataSource,
 	}
 }

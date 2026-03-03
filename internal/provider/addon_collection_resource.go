@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -12,6 +13,7 @@ import (
 )
 
 var _ resource.Resource = &addonCollectionResource{}
+var _ resource.ResourceWithImportState = &addonCollectionResource{}
 
 func NewAddonCollectionResource() resource.Resource {
 	return &addonCollectionResource{}
@@ -34,12 +36,12 @@ func (r *addonCollectionResource) Metadata(_ context.Context, req resource.Metad
 
 func (r *addonCollectionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages the Stremio addon collection for the authenticated account.",
-		MarkdownDescription: "Manages the full Stremio addon collection for the authenticated account.\n\nTerraform treats this resource as authoritative and will add/remove addons to match `transport_urls`.",
+		Description:         "Manages the Stremio addon collection for the authenticated account.",
+		MarkdownDescription: "Manages the full Stremio addon collection for the authenticated account.\n\nTerraform treats this resource as authoritative and will add/remove addons to match `transport_urls`.\n\n## Example Usage\n\n```hcl\nresource \"stremio_addon_collection\" \"main\" {\n  transport_urls = [\n    \"https://v3-cinemeta.strem.io/manifest.json\",\n    \"https://opensubtitles-v3.strem.io/manifest.json\",\n  ]\n}\n```\n\n## Import\n\n```bash\nterraform import stremio_addon_collection.main addon-collection\n```",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed:    true,
-				Description: "Static resource ID.",
+				Computed:            true,
+				Description:         "Static resource ID.",
 				MarkdownDescription: "Static resource identifier (`addon-collection`).",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -57,9 +59,9 @@ func (r *addonCollectionResource) Schema(_ context.Context, _ resource.SchemaReq
 				MarkdownDescription: "Optional account password for this resource. Required when `email` is set.",
 			},
 			"transport_urls": schema.SetAttribute{
-				Required:    true,
-				ElementType: types.StringType,
-				Description: "Desired addon transport URLs. Terraform adds/removes to match this set.",
+				Required:            true,
+				ElementType:         types.StringType,
+				Description:         "Desired addon transport URLs. Terraform adds/removes to match this set.",
 				MarkdownDescription: "Set of desired addon manifest `transportUrl` values. Add a URL to install it, remove a URL to uninstall it.",
 			},
 		},
@@ -192,6 +194,10 @@ func (r *addonCollectionResource) Delete(ctx context.Context, _ resource.DeleteR
 		_ = activeClient.SetInstalledAddons(ctx, []string{})
 	}
 	resp.State.RemoveResource(ctx)
+}
+
+func (r *addonCollectionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func (r *addonCollectionResource) authenticatedClient(ctx context.Context, email, password types.String) (*client, error) {

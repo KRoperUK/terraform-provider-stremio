@@ -37,37 +37,37 @@ func (r *accountResource) Metadata(_ context.Context, req resource.MetadataReque
 
 func (r *accountResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Creates or imports a Stremio account using email/password.",
-		MarkdownDescription: "Manages a Stremio account using email and password credentials.\n\nUse this resource to create a new account, or import an existing account with `email:password`.",
+		Description:         "Creates or imports a Stremio account using email/password.",
+		MarkdownDescription: "Manages a Stremio account using email and password credentials.\n\nUse this resource to create a new account, or import an existing account with `email:password`.\n\n## Example Usage\n\n```hcl\nresource \"stremio_account\" \"user\" {\n  email    = var.stremio_email\n  password = var.stremio_password\n}\n```\n\n## Import\n\n```bash\nterraform import stremio_account.user 'user@example.com:super-secret-password'\n```",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed:    true,
-				Description: "Terraform resource ID. Uses the account email.",
+				Computed:            true,
+				Description:         "Terraform resource ID. Uses the account email.",
 				MarkdownDescription: "Terraform resource ID, set to the account email.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"email": schema.StringAttribute{
-				Required:    true,
-				Description: "Stremio account email.",
+				Required:            true,
+				Description:         "Stremio account email.",
 				MarkdownDescription: "Email address for the Stremio account.",
 			},
 			"password": schema.StringAttribute{
-				Required:    true,
-				Sensitive:   true,
-				Description: "Stremio account password.",
+				Required:            true,
+				Sensitive:           true,
+				Description:         "Stremio account password.",
 				MarkdownDescription: "Password for the Stremio account.",
 			},
 			"auth_key": schema.StringAttribute{
-				Computed:    true,
-				Sensitive:   true,
-				Description: "Authentication auth key returned by Stremio.",
+				Computed:            true,
+				Sensitive:           true,
+				Description:         "Authentication auth key returned by Stremio.",
 				MarkdownDescription: "Computed auth key returned by Stremio after successful authentication.",
 			},
 			"user_id": schema.StringAttribute{
-				Computed:    true,
-				Description: "Stremio user identifier.",
+				Computed:            true,
+				Description:         "Stremio user identifier.",
 				MarkdownDescription: "Computed unique Stremio user ID.",
 			},
 		},

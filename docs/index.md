@@ -3,11 +3,28 @@
 page_title: "stremio Provider"
 description: |-
   Terraform provider for Stremio account operations, including authentication, account management, and addon collection management.
+  Example Usage
+  
+  provider "stremio" {
+    base_url = "https://api.strem.io"
+    email    = var.stremio_email
+    password = var.stremio_password
+  }
 ---
 
 # stremio Provider
 
 Terraform provider for Stremio account operations, including authentication, account management, and addon collection management.
+
+## Example Usage
+
+```hcl
+provider "stremio" {
+  base_url = "https://api.strem.io"
+  email    = var.stremio_email
+  password = var.stremio_password
+}
+```
 
 
 

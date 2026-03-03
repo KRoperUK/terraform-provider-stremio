@@ -5,6 +5,18 @@ subcategory: ""
 description: |-
   Manages the full Stremio addon collection for the authenticated account.
   Terraform treats this resource as authoritative and will add/remove addons to match transport_urls.
+  Example Usage
+  
+  resource "stremio_addon_collection" "main" {
+    transport_urls = [
+      "https://v3-cinemeta.strem.io/manifest.json",
+      "https://opensubtitles-v3.strem.io/manifest.json",
+    ]
+  }
+  
+  Import
+  
+  terraform import stremio_addon_collection.main addon-collection
 ---
 
 # stremio_addon_collection (Resource)
@@ -12,6 +24,23 @@ description: |-
 Manages the full Stremio addon collection for the authenticated account.
 
 Terraform treats this resource as authoritative and will add/remove addons to match `transport_urls`.
+
+## Example Usage
+
+```hcl
+resource "stremio_addon_collection" "main" {
+  transport_urls = [
+    "https://v3-cinemeta.strem.io/manifest.json",
+    "https://opensubtitles-v3.strem.io/manifest.json",
+  ]
+}
+```
+
+## Import
+
+```bash
+terraform import stremio_addon_collection.main addon-collection
+```
 
 
 

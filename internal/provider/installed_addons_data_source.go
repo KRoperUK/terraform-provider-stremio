@@ -30,17 +30,17 @@ func (d *installedAddonsDataSource) Metadata(_ context.Context, req datasource.M
 
 func (d *installedAddonsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Returns installed Stremio addons for the authenticated account.",
-		MarkdownDescription: "Reads installed Stremio addons for the authenticated account.",
+		Description:         "Returns installed Stremio addons for the authenticated account.",
+		MarkdownDescription: "Reads installed Stremio addons for the authenticated account.\n\n## Example Usage\n\n```hcl\ndata \"stremio_installed_addons\" \"current\" {}\n```",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed:    true,
-				Description: "Static identifier for this data source.",
+				Computed:            true,
+				Description:         "Static identifier for this data source.",
 				MarkdownDescription: "Static identifier for this data source instance.",
 			},
 			"addons": schema.ListNestedAttribute{
-				Computed:    true,
-				Description: "Installed add-on descriptors.",
+				Computed:            true,
+				Description:         "Installed add-on descriptors.",
 				MarkdownDescription: "List of installed addon descriptors.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{

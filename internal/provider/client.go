@@ -178,6 +178,72 @@ func (c *client) SetInstalledAddons(ctx context.Context, transportURLs []string)
 	return nil
 }
 
+func (c *client) WatchHistory(ctx context.Context, limit int64) ([]map[string]any, error) {
+	if c.authKey == "" {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	items, err := c.libraryItems(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		state, _ := item["state"].(map[string]any)
+		timeOffset, _ := int64FromAny(state["timeOffset"])
+		timeWatched, _ := int64FromAny(state["timeWatched"])
+		timesWatched, _ := int64FromAny(state["timesWatched"])
+		lastWatched, _ := state["lastWatched"].(string)
+
+		if timeOffset > 0 || timeWatched > 0 || timesWatched > 0 || lastWatched != "" {
+			entries = append(entries, item)
+		}
+	}
+	if limit > 0 && int64(len(entries)) > limit {
+		entries = entries[:limit]
+	}
+
+	return entries, nil
+}
+
+func (c *client) ContinueWatching(ctx context.Context, limit int64) ([]map[string]any, error) {
+	if c.authKey == "" {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	items, err := c.libraryItems(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		state, _ := item["state"].(map[string]any)
+		typeValue, _ := item["type"].(string)
+		removed, _ := boolFromAny(item["removed"])
+		temp, _ := boolFromAny(item["temp"])
+		timeOffset, _ := int64FromAny(state["timeOffset"])
+
+		if typeValue == "other" {
+			continue
+		}
+		if removed && !temp {
+			continue
+		}
+		if timeOffset <= 0 {
+			continue
+		}
+
+		entries = append(entries, item)
+	}
+	if limit > 0 && int64(len(entries)) > limit {
+		entries = entries[:limit]
+	}
+
+	return entries, nil
+}
+
 func (c *client) fetchManifest(ctx context.Context, transportURL string) (map[string]any, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, transportURL, nil)
 	if err != nil {
@@ -256,4 +322,80 @@ func (c *client) request(ctx context.Context, method string, params map[string]a
 	}
 
 	return envelope.Result, nil
+}
+
+func extractHistoryEntries(payload any) []map[string]any {
+	switch value := payload.(type) {
+	case []any:
+		entries := make([]map[string]any, 0, len(value))
+		for _, item := range value {
+			if object, ok := item.(map[string]any); ok {
+				entries = append(entries, object)
+			}
+		}
+		return entries
+	case map[string]any:
+		for _, key := range []string{"items", "history", "entries", "results", "rows", "videos"} {
+			if nested, ok := value[key]; ok {
+				entries := extractHistoryEntries(nested)
+				if len(entries) > 0 {
+					return entries
+				}
+			}
+		}
+
+		if _, ok := value["state"]; ok {
+			return []map[string]any{value}
+		}
+
+		entries := make([]map[string]any, 0, len(value))
+		for _, item := range value {
+			if object, ok := item.(map[string]any); ok {
+				entries = append(entries, object)
+			}
+		}
+		return entries
+	default:
+		return []map[string]any{}
+	}
+}
+
+func (c *client) libraryItems(ctx context.Context) ([]map[string]any, error) {
+	body, err := c.request(ctx, "datastoreGet", map[string]any{
+		"collection": "libraryItem",
+		"ids":        []string{},
+		"all":        true,
+	}, c.authKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []map[string]any
+	if err := json.Unmarshal(body, &items); err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+func int64FromAny(value any) (int64, bool) {
+	switch converted := value.(type) {
+	case int:
+		return int64(converted), true
+	case int32:
+		return int64(converted), true
+	case int64:
+		return converted, true
+	case float32:
+		return int64(converted), true
+	case float64:
+		return int64(converted), true
+	default:
+		return 0, false
+	}
+}
+
+func boolFromAny(value any) (bool, bool) {
+	converted, ok := value.(bool)
+	return converted, ok
 }
