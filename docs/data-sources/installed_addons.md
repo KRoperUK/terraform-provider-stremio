@@ -4,11 +4,20 @@ page_title: "stremio_installed_addons Data Source - stremio"
 subcategory: ""
 description: |-
   Reads installed Stremio addons for the authenticated account.
+  Example Usage
+  
+  data "stremio_installed_addons" "current" {}
 ---
 
 # stremio_installed_addons (Data Source)
 
 Reads installed Stremio addons for the authenticated account.
+
+## Example Usage
+
+```hcl
+data "stremio_installed_addons" "current" {}
+```
 
 
 

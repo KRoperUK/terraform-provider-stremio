@@ -5,6 +5,16 @@ subcategory: ""
 description: |-
   Manages a Stremio account using email and password credentials.
   Use this resource to create a new account, or import an existing account with email:password.
+  Example Usage
+  
+  resource "stremio_account" "user" {
+    email    = var.stremio_email
+    password = var.stremio_password
+  }
+  
+  Import
+  
+  terraform import stremio_account.user 'user@example.com:super-secret-password'
 ---
 
 # stremio_account (Resource)
@@ -12,6 +22,21 @@ description: |-
 Manages a Stremio account using email and password credentials.
 
 Use this resource to create a new account, or import an existing account with `email:password`.
+
+## Example Usage
+
+```hcl
+resource "stremio_account" "user" {
+  email    = var.stremio_email
+  password = var.stremio_password
+}
+```
+
+## Import
+
+```bash
+terraform import stremio_account.user 'user@example.com:super-secret-password'
+```
 
 
 

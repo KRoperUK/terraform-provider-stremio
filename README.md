@@ -11,6 +11,8 @@ Early release / developer preview.
 - Create a Stremio account via email/password (`stremio_account`)
 - Import an existing account via `email:password`
 - Read installed add-ons for the authenticated account (`stremio_installed_addons`)
+- Read watch history for the authenticated account (`stremio_watch_history`)
+- Read continue watching entries for the authenticated account (`stremio_continue_watching`)
 
 ## Requirements
 
@@ -103,6 +105,30 @@ output "installed_addons" {
 }
 ```
 
+## Data Source: stremio_watch_history
+
+```hcl
+data "stremio_watch_history" "recent" {
+  limit = 25
+}
+
+output "watch_history" {
+  value = data.stremio_watch_history.recent.entries
+}
+```
+
+## Data Source: stremio_continue_watching
+
+```hcl
+data "stremio_continue_watching" "current" {
+  limit = 25
+}
+
+output "continue_watching" {
+  value = data.stremio_continue_watching.current.entries
+}
+```
+
 ## Resource: stremio_addon_collection
 
 Manage the full add-on collection as desired state.
@@ -114,6 +140,12 @@ resource "stremio_addon_collection" "main" {
     "https://opensubtitles-v3.strem.io/manifest.json",
   ]
 }
+```
+
+Import existing addon collection:
+
+```bash
+terraform import stremio_addon_collection.main addon-collection
 ```
 
 For multi-account management, set per-resource credentials:
