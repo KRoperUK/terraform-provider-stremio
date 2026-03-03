@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.3.0...v1.4.0) (2026-03-03)
+
+
+### Features
+
+* addom metadata ([#27](https://github.com/KRoperUK/terraform-provider-stremio/issues/27)) ([9d61518](https://github.com/KRoperUK/terraform-provider-stremio/commit/9d61518ed7b09c96d725ffba9947da55d8402f9f))
+
 ## [1.3.0](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.2.0...v1.3.0) (2026-03-03)
 
 
