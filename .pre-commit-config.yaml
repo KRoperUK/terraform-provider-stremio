@@ -12,3 +12,12 @@ repos:
     rev: v1.99.4
     hooks:
       - id: terraform_fmt
+
+  - repo: local
+    hooks:
+      - id: terraform-provider-docs-generate
+        name: terraform provider docs generate
+        entry: go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest generate --provider-name stremio
+        language: system
+        pass_filenames: false
+        always_run: true

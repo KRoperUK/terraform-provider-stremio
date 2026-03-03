@@ -80,6 +80,8 @@ jobs:
               uses: actions/setup-go@v5
               with:
                   go-version-file: go.mod
+                  cache: true
+                  cache-dependency-path: go.mod
 
             - name: Generate docs
               run: go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest generate --provider-name stremio
