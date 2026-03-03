@@ -6,7 +6,14 @@
             "bump-minor-pre-major": true,
             "bump-patch-for-minor-pre-major": true,
             "changelog-path": "CHANGELOG.md",
-            "include-component-in-tag": false
+            "include-component-in-tag": false,
+            "extra-files": [
+                {
+                    "type": "json",
+                    "path": "terraform-registry-manifest.json",
+                    "jsonpath": "$.metadata.provider_version"
+                }
+            ]
         }
     }
 }
