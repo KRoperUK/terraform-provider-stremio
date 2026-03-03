@@ -48,6 +48,10 @@ terraform import stremio_account.user 'user@example.com:super-secret-password'
 - `email` (String) Email address for the Stremio account.
 - `password` (String, Sensitive) Password for the Stremio account.
 
+### Optional
+
+- `transport_urls` (Set of String) Optional set of desired addon manifest `transportUrl` values. When set, Terraform will add/remove addons to match this set. When not set, the addon collection is not managed by this resource.
+
 ### Read-Only
 
 - `auth_key` (String, Sensitive) Computed auth key returned by Stremio after successful authentication.
