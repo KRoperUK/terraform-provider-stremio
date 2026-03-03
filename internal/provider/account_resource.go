@@ -24,11 +24,12 @@ type accountResource struct {
 }
 
 type accountResourceModel struct {
-	ID       types.String `tfsdk:"id"`
-	Email    types.String `tfsdk:"email"`
-	Password types.String `tfsdk:"password"`
-	AuthKey  types.String `tfsdk:"auth_key"`
-	UserID   types.String `tfsdk:"user_id"`
+	ID            types.String `tfsdk:"id"`
+	Email         types.String `tfsdk:"email"`
+	Password      types.String `tfsdk:"password"`
+	AuthKey       types.String `tfsdk:"auth_key"`
+	UserID        types.String `tfsdk:"user_id"`
+	TransportURLs types.Set    `tfsdk:"transport_urls"`
 }
 
 func (r *accountResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -69,6 +70,12 @@ func (r *accountResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Computed:            true,
 				Description:         "Stremio user identifier.",
 				MarkdownDescription: "Computed unique Stremio user ID.",
+			},
+			"transport_urls": schema.SetAttribute{
+				Optional:            true,
+				ElementType:         types.StringType,
+				Description:         "Desired addon transport URLs. When set, Terraform manages the addon collection to match this set.",
+				MarkdownDescription: "Optional set of desired addon manifest `transportUrl` values. When set, Terraform will add/remove addons to match this set. When not set, the addon collection is not managed by this resource.",
 			},
 		},
 	}
@@ -117,6 +124,18 @@ func (r *accountResource) Create(ctx context.Context, req resource.CreateRequest
 	plan.AuthKey = types.StringValue(r.client.authKey)
 	plan.UserID = types.StringValue(r.client.userID)
 
+	if !plan.TransportURLs.IsNull() && !plan.TransportURLs.IsUnknown() {
+		transportURLs := make([]string, 0)
+		resp.Diagnostics.Append(plan.TransportURLs.ElementsAs(ctx, &transportURLs, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if err := r.client.SetInstalledAddons(ctx, transportURLs); err != nil {
+			resp.Diagnostics.AddError("Unable to set addon collection", err.Error())
+			return
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -144,6 +163,27 @@ func (r *accountResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	state.AuthKey = types.StringValue(r.client.authKey)
 	state.UserID = types.StringValue(r.client.userID)
+
+	if !state.TransportURLs.IsNull() {
+		addons, err := r.client.InstalledAddons(ctx)
+		if err != nil {
+			resp.Diagnostics.AddError("Unable to read addon collection", err.Error())
+			return
+		}
+		transportURLs := make([]string, 0, len(addons))
+		for _, item := range addons {
+			if item.TransportURL == "" {
+				continue
+			}
+			transportURLs = append(transportURLs, item.TransportURL)
+		}
+		setValue, diags := types.SetValueFrom(ctx, types.StringType, transportURLs)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		state.TransportURLs = setValue
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -174,10 +214,45 @@ func (r *accountResource) Update(ctx context.Context, req resource.UpdateRequest
 	plan.AuthKey = types.StringValue(r.client.authKey)
 	plan.UserID = types.StringValue(r.client.userID)
 
+	if !plan.TransportURLs.IsNull() && !plan.TransportURLs.IsUnknown() {
+		transportURLs := make([]string, 0)
+		resp.Diagnostics.Append(plan.TransportURLs.ElementsAs(ctx, &transportURLs, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if err := r.client.SetInstalledAddons(ctx, transportURLs); err != nil {
+			resp.Diagnostics.AddError("Unable to update addon collection", err.Error())
+			return
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *accountResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *accountResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	if r.client == nil {
+		resp.Diagnostics.AddError("Provider not configured", "The provider client is not available.")
+		return
+	}
+
+	var state accountResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := r.client.Login(ctx, state.Email.ValueString(), state.Password.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to authenticate before deleting account", err.Error())
+		return
+	}
+
+	err = r.client.DeleteUser(ctx, state.Password.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to delete Stremio account", err.Error())
+		return
+	}
+
 	resp.State.RemoveResource(ctx)
 }
 
@@ -209,11 +284,12 @@ func (r *accountResource) ImportState(ctx context.Context, req resource.ImportSt
 	}
 
 	state := accountResourceModel{
-		ID:       types.StringValue(email),
-		Email:    types.StringValue(email),
-		Password: types.StringValue(password),
-		AuthKey:  types.StringValue(r.client.authKey),
-		UserID:   types.StringValue(r.client.userID),
+		ID:            types.StringValue(email),
+		Email:         types.StringValue(email),
+		Password:      types.StringValue(password),
+		AuthKey:       types.StringValue(r.client.authKey),
+		UserID:        types.StringValue(r.client.userID),
+		TransportURLs: types.SetNull(types.StringType),
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

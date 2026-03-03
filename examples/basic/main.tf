@@ -15,10 +15,6 @@ provider "stremio" {
 resource "stremio_account" "user" {
   email    = var.stremio_email
   password = var.stremio_password
-}
-
-resource "stremio_addon_collection" "managed" {
-  depends_on = [stremio_account.user]
 
   transport_urls = [
     "https://v3-cinemeta.strem.io/manifest.json",
@@ -27,7 +23,7 @@ resource "stremio_addon_collection" "managed" {
 }
 
 data "stremio_installed_addons" "installed" {
-  depends_on = [stremio_addon_collection.managed]
+  depends_on = [stremio_account.user]
 }
 
 data "stremio_watch_history" "recent" {

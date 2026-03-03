@@ -101,7 +101,6 @@ func (p *stremioProvider) Configure(ctx context.Context, req provider.ConfigureR
 func (p *stremioProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewAccountResource,
-		NewAddonCollectionResource,
 	}
 }
 

@@ -276,6 +276,21 @@ func (c *client) ContinueWatching(ctx context.Context, limit int64) ([]map[strin
 	return entries, nil
 }
 
+func (c *client) DeleteUser(ctx context.Context, password string) error {
+	if c.authKey == "" {
+		return fmt.Errorf("not authenticated")
+	}
+
+	_, err := c.request(ctx, "deleteUser", map[string]any{
+		"password": password,
+	}, c.authKey)
+	if err != nil {
+		return fmt.Errorf("stremio deleteUser error: %w", err)
+	}
+
+	return nil
+}
+
 func (c *client) fetchManifest(ctx context.Context, transportURL string) (map[string]any, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, transportURL, nil)
 	if err != nil {
