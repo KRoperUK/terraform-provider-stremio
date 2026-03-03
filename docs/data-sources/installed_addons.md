@@ -34,5 +34,10 @@ data "stremio_installed_addons" "current" {}
 
 Read-Only:
 
+- `addon_id` (String) Addon identifier from manifest metadata when available.
+- `catalog_types` (List of String) Catalog types advertised by addon catalogs when available.
 - `name` (String) Addon display name when provided by descriptor metadata.
+- `resources` (List of String) Resource names advertised by the addon when available.
 - `transport_url` (String) Addon `transportUrl` value.
+- `types` (List of String) Content types this addon supports when available.
+- `version` (String) Addon version from manifest metadata when available.

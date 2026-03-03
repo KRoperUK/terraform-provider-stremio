@@ -33,8 +33,13 @@ type addonCollectionResult struct {
 }
 
 type addon struct {
+	AddonID      string
 	TransportURL string
 	Name         string
+	Version      string
+	Types        []string
+	CatalogTypes []string
+	Resources    []string
 }
 
 type apiEnvelope struct {
@@ -122,10 +127,32 @@ func (c *client) InstalledAddons(ctx context.Context) ([]addon, error) {
 	for _, item := range out.Addons {
 		transportURL, _ := item["transportUrl"].(string)
 
+		var addonID string
 		var name string
+		var version string
+		typesList := make([]string, 0)
+		catalogTypes := make([]string, 0)
+		resources := make([]string, 0)
 		if manifest, ok := item["manifest"].(map[string]any); ok {
+			if value, exists := manifest["id"].(string); exists {
+				addonID = value
+			}
 			if value, exists := manifest["name"].(string); exists {
 				name = value
+			}
+			if value, exists := manifest["version"].(string); exists {
+				version = value
+			}
+
+			typesList = stringSliceFromAny(manifest["types"])
+
+			catalogTypes = catalogTypesFromManifest(manifest["catalogs"])
+			resources = resourceNamesFromManifest(manifest["resources"])
+		}
+
+		if addonID == "" {
+			if value, exists := item["transportName"].(string); exists {
+				addonID = value
 			}
 		}
 
@@ -136,8 +163,13 @@ func (c *client) InstalledAddons(ctx context.Context) ([]addon, error) {
 		}
 
 		addOns = append(addOns, addon{
+			AddonID:      addonID,
 			TransportURL: transportURL,
 			Name:         name,
+			Version:      version,
+			Types:        typesList,
+			CatalogTypes: catalogTypes,
+			Resources:    resources,
 		})
 	}
 
@@ -398,4 +430,77 @@ func int64FromAny(value any) (int64, bool) {
 func boolFromAny(value any) (bool, bool) {
 	converted, ok := value.(bool)
 	return converted, ok
+}
+
+func stringSliceFromAny(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		if itemValue, ok := item.(string); ok && itemValue != "" {
+			result = append(result, itemValue)
+		}
+	}
+
+	return result
+}
+
+func catalogTypesFromManifest(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(items))
+	seen := map[string]struct{}{}
+	for _, item := range items {
+		catalog, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		typeValue, _ := catalog["type"].(string)
+		if typeValue == "" {
+			continue
+		}
+		if _, exists := seen[typeValue]; exists {
+			continue
+		}
+		seen[typeValue] = struct{}{}
+		result = append(result, typeValue)
+	}
+
+	return result
+}
+
+func resourceNamesFromManifest(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(items))
+	seen := map[string]struct{}{}
+	for _, item := range items {
+		var resourceName string
+		switch converted := item.(type) {
+		case string:
+			resourceName = converted
+		case map[string]any:
+			resourceName, _ = converted["name"].(string)
+		}
+
+		if resourceName == "" {
+			continue
+		}
+		if _, exists := seen[resourceName]; exists {
+			continue
+		}
+		seen[resourceName] = struct{}{}
+		result = append(result, resourceName)
+	}
+
+	return result
 }

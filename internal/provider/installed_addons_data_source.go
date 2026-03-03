@@ -44,6 +44,11 @@ func (d *installedAddonsDataSource) Schema(_ context.Context, _ datasource.Schem
 				MarkdownDescription: "List of installed addon descriptors.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"addon_id": schema.StringAttribute{
+							Computed:            true,
+							Description:         "Addon identifier from manifest metadata when available.",
+							MarkdownDescription: "Addon identifier from manifest metadata when available.",
+						},
 						"transport_url": schema.StringAttribute{
 							Computed:            true,
 							Description:         "Addon transport URL.",
@@ -53,6 +58,29 @@ func (d *installedAddonsDataSource) Schema(_ context.Context, _ datasource.Schem
 							Computed:            true,
 							Description:         "Addon display name, if available.",
 							MarkdownDescription: "Addon display name when provided by descriptor metadata.",
+						},
+						"version": schema.StringAttribute{
+							Computed:            true,
+							Description:         "Addon version from manifest metadata when available.",
+							MarkdownDescription: "Addon version from manifest metadata when available.",
+						},
+						"types": schema.ListAttribute{
+							Computed:            true,
+							ElementType:         types.StringType,
+							Description:         "Content types this addon supports when available.",
+							MarkdownDescription: "Content types this addon supports when available.",
+						},
+						"catalog_types": schema.ListAttribute{
+							Computed:            true,
+							ElementType:         types.StringType,
+							Description:         "Catalog types advertised by addon catalogs when available.",
+							MarkdownDescription: "Catalog types advertised by addon catalogs when available.",
+						},
+						"resources": schema.ListAttribute{
+							Computed:            true,
+							ElementType:         types.StringType,
+							Description:         "Resource names advertised by the addon when available.",
+							MarkdownDescription: "Resource names advertised by the addon when available.",
 						},
 					},
 				},
@@ -95,9 +123,32 @@ func (d *installedAddonsDataSource) Read(ctx context.Context, _ datasource.ReadR
 
 	addonObjects := make([]addonModel, 0, len(addons))
 	for _, addon := range addons {
+		typesValue, diags := types.ListValueFrom(ctx, types.StringType, addon.Types)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		catalogTypesValue, diags := types.ListValueFrom(ctx, types.StringType, addon.CatalogTypes)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		resourcesValue, diags := types.ListValueFrom(ctx, types.StringType, addon.Resources)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
 		addonObjects = append(addonObjects, addonModel{
+			AddonID:      types.StringValue(addon.AddonID),
 			TransportURL: types.StringValue(addon.TransportURL),
 			Name:         types.StringValue(addon.Name),
+			Version:      types.StringValue(addon.Version),
+			Types:        typesValue,
+			CatalogTypes: catalogTypesValue,
+			Resources:    resourcesValue,
 		})
 	}
 
