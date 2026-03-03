@@ -49,6 +49,18 @@ These scripts automatically:
 - configure Terraform `dev_overrides` for `kroperuk/stremio`
 - pass credentials to Terraform via `TF_VAR_stremio_email` and `TF_VAR_stremio_password`
 
+## Terraform Registry Docs
+
+Provider, resource, and data source docs are generated from schema descriptions.
+
+```bash
+go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest generate --provider-name stremio
+```
+
+Generated files are written under [docs](docs) and must be committed.
+
+CI validates docs are up to date by regenerating and checking for diffs.
+
 ## Provider Configuration
 
 ```hcl

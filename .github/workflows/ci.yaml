@@ -69,3 +69,22 @@ jobs:
             - name: Skip (no changed files)
               if: steps.changed.outputs.has_changes != 'true'
               run: echo "No changed files against default branch; skipping pre-commit."
+
+    terraform-docs:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+
+            - name: Generate docs
+              run: go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest generate --provider-name stremio
+
+            - name: Check docs are committed
+              run: |
+                  git add -N -- 'docs/**/*' ':(exclude)docs/wiki/**/*'
+                  git diff --exit-code -- 'docs/**/*' ':(exclude)docs/wiki/**/*'
