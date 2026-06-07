@@ -122,7 +122,9 @@ jobs:
             - name: Set up Go
               uses: actions/setup-go@v6
               with:
-                  go-version-file: go.mod
+                  # setup-go@v6 defaults to GOTOOLCHAIN=local, so install a patch
+                  # new enough for tfplugindocs (>= 1.25.8) rather than the go.mod floor.
+                  go-version: "1.25"
                   cache: true
                   cache-dependency-path: go.sum
 
