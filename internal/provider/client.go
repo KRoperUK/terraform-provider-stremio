@@ -301,7 +301,7 @@ func (c *client) fetchManifest(ctx context.Context, transportURL string) (map[st
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -344,7 +344,7 @@ func (c *client) request(ctx context.Context, method string, params map[string]a
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -70,6 +70,49 @@ jobs:
               if: steps.changed.outputs.has_changes != 'true'
               run: echo "No changed files against default branch; skipping pre-commit."
 
+    go:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  # Track the latest 1.25.x patch so the standard library stays
+                  # current for govulncheck (the go.mod directive only sets a floor).
+                  go-version: "1.25"
+                  cache: true
+                  cache-dependency-path: go.sum
+
+            - name: Verify go.mod is tidy
+              run: |
+                  go mod tidy
+                  git diff --exit-code -- go.mod go.sum
+
+            - name: Build
+              run: go build ./...
+
+            - name: Vet
+              run: go vet ./...
+
+            - name: Test
+              run: go test -race -coverprofile=coverage.out ./...
+
+            - name: golangci-lint
+              uses: golangci/golangci-lint-action@v8
+              with:
+                  version: v2.12.2
+
+            - name: govulncheck
+              run: |
+                  go install golang.org/x/vuln/cmd/govulncheck@latest
+                  # Block on dependency vulnerabilities; treat standard-library
+                  # findings as advisory (their fix ships with a Go release that
+                  # may not be available yet). See the filter script for details.
+                  govulncheck -format json ./... > govulncheck.json
+                  python3 .github/scripts/govulncheck-filter.py govulncheck.json
+
     terraform-docs:
         runs-on: ubuntu-latest
         steps:
@@ -81,10 +124,10 @@ jobs:
               with:
                   go-version-file: go.mod
                   cache: true
-                  cache-dependency-path: go.mod
+                  cache-dependency-path: go.sum
 
             - name: Generate docs
-              run: go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest generate --provider-name stremio
+              run: go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 generate --provider-name stremio
 
             - name: Check docs are committed
               run: |

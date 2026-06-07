@@ -1,9 +1,9 @@
 # terraform-provider-stremio
 
-[![Release Please](https://github.com/kroperuk/terraform-provider-stremio/actions/workflows/release.yml/badge.svg)](https://github.com/kroperuk/terraform-provider-stremio/actions/workflows/release-please.yml)
+[![Release Please](https://github.com/kroperuk/terraform-provider-stremio/actions/workflows/release.yml/badge.svg)](https://github.com/kroperuk/terraform-provider-stremio/actions/workflows/release.yml)
 [![Current Version](https://img.shields.io/github/v/release/kroperuk/terraform-provider-stremio?label=version)](https://github.com/kroperuk/terraform-provider-stremio/releases)
 [![Terraform Registry](https://img.shields.io/badge/Terraform%20Registry-KRoperUK%2Fstremio-7B42BC?logo=terraform)](https://registry.terraform.io/providers/KRoperUK/stremio/latest)
-[![Go Version](https://img.shields.io/badge/go-1.22%2B-00ADD8?logo=go)](https://go.dev/dl/)
+[![Go Version](https://img.shields.io/badge/go-1.25%2B-00ADD8?logo=go)](https://go.dev/dl/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Terraform provider for Stremio account workflows.
@@ -22,7 +22,7 @@ Early release / developer preview.
 
 ## Requirements
 
-- Go 1.22+
+- Go 1.25+
 - Terraform 1.6+
 
 ## Build
@@ -31,6 +31,17 @@ Early release / developer preview.
 go mod tidy
 go build -o terraform-provider-stremio
 ```
+
+## Testing & Linting
+
+```bash
+go test -race ./...        # unit tests (client is mocked with httptest)
+go vet ./...
+golangci-lint run ./...    # config in .golangci.yml
+```
+
+CI additionally runs `govulncheck` and verifies `go.mod` is tidy. Pull requests must
+pass the `pre-commit`, `go`, and `terraform-docs` checks before merge.
 
 ## Setup
 
@@ -62,7 +73,7 @@ These scripts automatically:
 Provider, resource, and data source docs are generated from schema descriptions.
 
 ```bash
-go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest generate --provider-name stremio
+go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 generate --provider-name stremio
 ```
 
 Generated files are written under [docs](docs) and must be committed.
@@ -135,12 +146,18 @@ output "continue_watching" {
 }
 ```
 
-## Resource: stremio_addon_collection
+## Managing the add-on collection
 
-Manage the full add-on collection as desired state.
+Add-on collection management is built into the `stremio_account` resource via the
+optional `transport_urls` set. When set, Terraform manages the account's add-on
+collection to match exactly this set of manifest `transportUrl` values. When the
+attribute is omitted, the add-on collection is left untouched.
 
 ```hcl
-resource "stremio_addon_collection" "main" {
+resource "stremio_account" "user" {
+  email    = var.stremio_email
+  password = var.stremio_password
+
   transport_urls = [
     "https://v3-cinemeta.strem.io/manifest.json",
     "https://opensubtitles-v3.strem.io/manifest.json",
@@ -148,16 +165,10 @@ resource "stremio_addon_collection" "main" {
 }
 ```
 
-Import existing addon collection:
-
-```bash
-terraform import stremio_addon_collection.main addon-collection
-```
-
 For multi-account management, set per-resource credentials:
 
 ```hcl
-resource "stremio_addon_collection" "account" {
+resource "stremio_account" "account" {
   for_each = var.accounts
 
   email    = each.value.email
@@ -177,7 +188,8 @@ See [examples/multi-account/main.tf](examples/multi-account/main.tf) and [exampl
 
 Pass `accounts` as a map of credentials and Terraform applies the same addon set to every account.
 
-If accounts already exist, keep `create_accounts = false`.
+For accounts that already exist, import them first with
+`terraform import 'stremio_account.accounts["<key>"]' 'email:password'` before applying.
 
 ## Notes
 
@@ -193,16 +205,16 @@ If accounts already exist, keep `create_accounts = false`.
 
 This repository uses Release Please via GitHub Actions:
 
-- Versioning workflow: [.github/workflows/release-please.yml](.github/workflows/release-please.yml)
-- Publish workflow: [.github/workflows/publish-release.yml](.github/workflows/publish-release.yml)
+- Release & publish workflow: [.github/workflows/release.yml](.github/workflows/release.yml)
 - Config: [release-please-config.json](release-please-config.json)
 - Manifest: [.release-please-manifest.json](.release-please-manifest.json)
 
 How it works:
 
 - Push conventional commits to `main`.
-- Release Please opens/updates a release PR with version/changelog updates and creates the version tag.
-- Tag pushes (`v*`) run the publish workflow, which creates a draft release, uploads Terraform Registry-compatible artifacts (`*.zip` + `*_SHA256SUMS`), then publishes the release.
+- Release Please opens/updates a release PR with version/changelog updates.
+- Merging the release PR bumps the manifest; the workflow then creates the version tag (`v*`).
+- The tag triggers GoReleaser, which uploads GPG-signed Terraform Registry-compatible artifacts (`*.zip` + `*_SHA256SUMS` + `*.sig`) to the GitHub release.
 
 Terraform Public Registry publication:
 

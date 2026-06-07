@@ -6,12 +6,6 @@ variable "accounts" {
   }))
 }
 
-variable "create_accounts" {
-  description = "Whether to create/register accounts with stremio_account. Set false when accounts already exist."
-  type        = bool
-  default     = false
-}
-
 variable "shared_transport_urls" {
   description = "Same addon transport URLs applied to every account in var.accounts."
   type        = list(string)

@@ -18,7 +18,7 @@ repos:
     hooks:
       - id: terraform-provider-docs-generate
         name: terraform provider docs generate
-        entry: go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest generate --provider-name stremio
+        entry: go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 generate --provider-name stremio
         language: system
         pass_filenames: false
         always_run: true

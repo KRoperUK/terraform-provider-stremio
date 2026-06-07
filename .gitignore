@@ -9,3 +9,7 @@
 *.log
 terraform-provider-stremio
 .venv/
+
+# govulncheck report (CI artifact)
+govulncheck.json
+coverage.out
