@@ -32,6 +32,17 @@ go mod tidy
 go build -o terraform-provider-stremio
 ```
 
+## Testing & Linting
+
+```bash
+go test -race ./...        # unit tests (client is mocked with httptest)
+go vet ./...
+golangci-lint run ./...    # config in .golangci.yml
+```
+
+CI additionally runs `govulncheck` and verifies `go.mod` is tidy. Pull requests must
+pass the `pre-commit`, `go`, and `terraform-docs` checks before merge.
+
 ## Setup
 
 ```bash
