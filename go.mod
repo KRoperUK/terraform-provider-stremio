@@ -2,8 +2,6 @@ module github.com/kroperuk/terraform-provider-stremio
 
 go 1.25.0
 
-toolchain go1.25.9
-
 require github.com/hashicorp/terraform-plugin-framework v1.19.0
 
 require (
