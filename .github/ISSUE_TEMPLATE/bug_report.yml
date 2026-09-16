@@ -1,0 +1,75 @@
+name: Bug report
+description: Report something that isn't working as expected
+labels: ["bug"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for taking the time to file a bug! Please do **not** include
+              secrets (passwords, auth keys, tokens) in this report. For security
+              vulnerabilities, follow [SECURITY.md](../blob/main/SECURITY.md) instead.
+
+    - type: textarea
+      id: what-happened
+      attributes:
+          label: What happened?
+          description: A clear description of the bug and what you expected instead.
+      validations:
+          required: true
+
+    - type: textarea
+      id: reproduce
+      attributes:
+          label: Steps to reproduce
+          description: Include a minimal Terraform configuration if possible.
+          placeholder: |
+              1. Configure `...`
+              2. Run `terraform apply`
+              3. See error
+      validations:
+          required: true
+
+    - type: textarea
+      id: logs
+      attributes:
+          label: Terraform output / logs
+          description: |
+              Relevant `plan`/`apply` output. Set `TF_LOG=DEBUG` for more detail.
+              Redact any credentials first. This is rendered as a code block.
+          render: shell
+      validations:
+          required: false
+
+    - type: input
+      id: provider-version
+      attributes:
+          label: Provider version
+          placeholder: "v1.5.1"
+      validations:
+          required: true
+
+    - type: input
+      id: terraform-version
+      attributes:
+          label: Terraform version
+          placeholder: "1.9.0"
+      validations:
+          required: true
+
+    - type: input
+      id: os
+      attributes:
+          label: OS / architecture
+          placeholder: "macOS arm64"
+      validations:
+          required: false
+
+    - type: checkboxes
+      id: checks
+      attributes:
+          label: Confirmation
+          options:
+              - label: I searched existing issues and this is not a duplicate.
+                required: true
+              - label: I removed all secrets/credentials from this report.
+                required: true
