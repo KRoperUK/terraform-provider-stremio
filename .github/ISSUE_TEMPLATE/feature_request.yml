@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest a new resource, data source, attribute, or improvement
+labels: ["enhancement"]
+body:
+    - type: markdown
+      attributes:
+          value: Thanks for the suggestion! Please check existing issues first to avoid duplicates.
+
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem / use case
+          description: What are you trying to accomplish that the provider can't do today?
+      validations:
+          required: true
+
+    - type: textarea
+      id: proposal
+      attributes:
+          label: Proposed solution
+          description: |
+              Describe the resource, data source, or attribute you'd like. A sketch of
+              the desired Terraform configuration is very helpful.
+          render: hcl
+      validations:
+          required: true
+
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives considered
+          description: Any workarounds you're using today, or other approaches you weighed.
+      validations:
+          required: false
+
+    - type: input
+      id: stremio-api
+      attributes:
+          label: Relevant Stremio API (if known)
+          description: The endpoint or behaviour this maps to, if you know it.
+          placeholder: "POST /api/addonCollectionSet"
+      validations:
+          required: false
+
+    - type: checkboxes
+      id: checks
+      attributes:
+          label: Confirmation
+          options:
+              - label: I searched existing issues and this is not a duplicate.
+                required: true

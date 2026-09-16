@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Documentation & guides
+      url: https://github.com/KRoperUK/terraform-provider-stremio/wiki
+      about: Getting started, provider configuration, and troubleshooting.
+    - name: Terraform Registry docs
+      url: https://registry.terraform.io/providers/KRoperUK/stremio/latest/docs
+      about: Reference docs for the provider, resources, and data sources.
+    - name: Report a security vulnerability
+      url: https://github.com/KRoperUK/terraform-provider-stremio/security/advisories/new
+      about: Please report vulnerabilities privately — do not open a public issue.
