@@ -14,7 +14,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v7
               with:
                   fetch-depth: 0
 
@@ -23,13 +23,13 @@ jobs:
 
             - name: Setup Python
               id: setup-python
-              uses: actions/setup-python@v6
+              uses: actions/setup-python@v7
               with:
                   python-version: "3.12"
                   cache: pip
 
             - name: Cache pre-commit
-              uses: actions/cache@v5
+              uses: actions/cache@v6
               with:
                   path: ~/.cache/pre-commit
                   key: pre-commit|${{ runner.os }}|${{ steps.setup-python.outputs.python-version }}|${{ hashFiles('.pre-commit-config.yaml') }}
@@ -74,10 +74,10 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v7
 
             - name: Set up Go
-              uses: actions/setup-go@v6
+              uses: actions/setup-go@v7
               with:
                   # Track the latest 1.25.x patch so the standard library stays
                   # current for govulncheck (the go.mod directive only sets a floor).
@@ -106,7 +106,11 @@ jobs:
 
             - name: govulncheck
               run: |
-                  go install golang.org/x/vuln/cmd/govulncheck@latest
+                  # Pinned deliberately, not @latest: x/vuln v1.8.0 requires
+                  # Go >= 1.26, but this job runs Go 1.25 with
+                  # GOTOOLCHAIN=local, so @latest breaks the job as soon as
+                  # upstream bumps its own Go directive.
+                  go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
                   # Block on dependency vulnerabilities; treat standard-library
                   # findings as advisory (their fix ships with a Go release that
                   # may not be available yet). See the filter script for details.
@@ -117,10 +121,10 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v7
 
             - name: Set up Go
-              uses: actions/setup-go@v6
+              uses: actions/setup-go@v7
               with:
                   # setup-go@v6 defaults to GOTOOLCHAIN=local, so install a patch
                   # new enough for tfplugindocs (>= 1.25.8) rather than the go.mod floor.

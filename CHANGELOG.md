@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.5.0...v1.5.1) (2026-06-07)
+
+
+### Bug Fixes
+
+* **deps:** rebuild provider with refreshed dependencies ([#35](https://github.com/KRoperUK/terraform-provider-stremio/issues/35)) ([c0b68a7](https://github.com/KRoperUK/terraform-provider-stremio/commit/c0b68a72e4999532e46ccc1f1219565c3ae8dc0b))
+
 ## [1.5.0](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.4.0...v1.5.0) (2026-03-03)
 
 
