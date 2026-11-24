@@ -21,6 +21,8 @@ func TestNewClient(t *testing.T) {
 	}{
 		{name: "valid https", baseURL: "https://api.strem.io", wantErr: false},
 		{name: "valid with path", baseURL: "https://example.com/base", wantErr: false},
+		{name: "http loopback allowed", baseURL: "http://127.0.0.1:8080", wantErr: false},
+		{name: "http rejected", baseURL: "http://api.strem.io", wantErr: true},
 		{name: "missing scheme", baseURL: "api.strem.io", wantErr: true},
 		{name: "missing host", baseURL: "https://", wantErr: true},
 		{name: "empty", baseURL: "", wantErr: true},
@@ -372,6 +374,22 @@ func TestSetInstalledAddons(t *testing.T) {
 	entry := addons[0].(map[string]any)
 	if entry["transportName"] != "Example" {
 		t.Fatalf("expected transportName from manifest, got: %v", entry["transportName"])
+	}
+}
+
+func TestFetchManifestTooLarge(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(make([]byte, (10<<20)+1))
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL)
+	if _, err := c.fetchManifest(context.Background(), srv.URL); err == nil {
+		t.Fatal("expected error for oversized manifest")
+	} else if !strings.Contains(err.Error(), "exceeds") {
+		t.Fatalf("expected size error, got: %v", err)
 	}
 }
 

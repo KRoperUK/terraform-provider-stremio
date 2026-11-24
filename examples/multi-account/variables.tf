@@ -1,5 +1,6 @@
 variable "accounts" {
   description = "Map of account entries to manage. Key is any label, value contains login credentials."
+  sensitive   = true
   type = map(object({
     email    = string
     password = string

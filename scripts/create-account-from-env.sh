@@ -32,7 +32,10 @@ go build -o terraform-provider-stremio
 if ! command -v terraform >/dev/null 2>&1; then
   echo "Terraform CLI not found. Falling back to direct Stremio API register call."
 
-  payload="{\"email\":\"${STREMIO_EMAIL}\",\"password\":\"${STREMIO_PASSWORD}\"}"
+  # Build JSON with python3 so quotes and backslashes in credentials
+  # cannot break out of the payload.
+  payload="$(python3 -c 'import json,sys; print(json.dumps({"email": sys.argv[1], "password": sys.argv[2]}))' \
+    "${STREMIO_EMAIL}" "${STREMIO_PASSWORD}")"
   register_response="$(curl -sS -X POST \
     -H "content-type: application/json" \
     --data "${payload}" \
