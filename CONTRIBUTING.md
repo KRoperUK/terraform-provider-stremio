@@ -7,7 +7,7 @@ By participating you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## Prerequisites
 
-- [Go 1.25+](https://go.dev/dl/)
+- [Go 1.26+](https://go.dev/dl/)
 - [Terraform 1.6+](https://developer.hashicorp.com/terraform/install)
 - [pre-commit](https://pre-commit.com/) (`pip install pre-commit`)
 - A GPG (or SSH) signing key registered with GitHub — **all commits must be signed.**

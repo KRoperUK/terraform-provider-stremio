@@ -1,7 +1,7 @@
 # GitHub Copilot instructions
 
 This repository is a **Terraform provider for Stremio** (`github.com/kroperuk/terraform-provider-stremio`),
-built on the HashiCorp `terraform-plugin-framework`. Go 1.25+, Terraform 1.6+, plugin protocol 6.0.
+built on the HashiCorp `terraform-plugin-framework`. Go 1.26+, Terraform 1.6+, plugin protocol 6.0.
 See [CLAUDE.md](../CLAUDE.md) for the full contributor guide.
 
 ## Project structure

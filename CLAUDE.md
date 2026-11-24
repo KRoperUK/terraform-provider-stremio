@@ -11,7 +11,7 @@ read-only data about installed add-ons and watch history.
 
 - Module: `github.com/kroperuk/terraform-provider-stremio`
 - Registry: `KRoperUK/stremio` (`registry.terraform.io/providers/KRoperUK/stremio`)
-- Go 1.25+, Terraform 1.6+, plugin protocol 6.0
+- Go 1.26+, Terraform 1.6+, plugin protocol 6.0
 
 ## Layout
 
