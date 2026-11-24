@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,7 +18,18 @@ type client struct {
 	httpClient *http.Client
 	authKey    string
 	userID     string
-	email      string
+	// libraries is shared across clones (one per provider instance): the
+	// full library is fetched once per Terraform run and reused by every
+	// data source instead of once per data source.
+	libraries *libraryStore
+}
+
+// libraryStore caches the account library keyed by auth key. It lives
+// behind a pointer so client clones (one per resource/data source) share
+// it; entries are only added, never mutated, so readers are safe.
+type libraryStore struct {
+	mu     sync.Mutex
+	byAuth map[string][]map[string]any
 }
 
 type loginResult struct {
@@ -68,6 +80,7 @@ func newClient(baseURL string) (*client, error) {
 		httpClient: &http.Client{
 			Timeout: 15 * time.Second,
 		},
+		libraries: &libraryStore{byAuth: map[string][]map[string]any{}},
 	}, nil
 }
 
@@ -117,7 +130,6 @@ func (c *client) Login(ctx context.Context, email, password string) error {
 
 	c.authKey = out.AuthKey
 	c.userID = out.User.ID
-	c.email = out.User.Email
 
 	return nil
 }
@@ -195,22 +207,47 @@ func (c *client) SetInstalledAddons(ctx context.Context, transportURLs []string)
 		return fmt.Errorf("not authenticated")
 	}
 
+	// Fetch manifests concurrently: each fetch is an independent HTTP
+	// round trip, and lists grow with the user's collection. Results stay
+	// in input order so the collection is deterministic.
+	const maxManifestConcurrency = 4
+
+	manifests := make([]map[string]any, len(transportURLs))
+	fetchErrs := make([]error, len(transportURLs))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, maxManifestConcurrency)
+	for i, transportURL := range transportURLs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			manifest, err := c.fetchManifest(ctx, transportURL)
+			if err != nil {
+				fetchErrs[i] = fmt.Errorf("unable to fetch addon manifest for %s: %w", transportURL, err)
+				return
+			}
+			manifests[i] = manifest
+		}()
+	}
+	wg.Wait()
+
 	addons := make([]map[string]any, 0, len(transportURLs))
-	for _, transportURL := range transportURLs {
-		manifest, err := c.fetchManifest(ctx, transportURL)
-		if err != nil {
-			return fmt.Errorf("unable to fetch addon manifest for %s: %w", transportURL, err)
+	for i, transportURL := range transportURLs {
+		if fetchErrs[i] != nil {
+			return fetchErrs[i]
 		}
 
 		transportName := ""
-		if value, ok := manifest["name"].(string); ok {
+		if value, ok := manifests[i]["name"].(string); ok {
 			transportName = value
 		}
 
 		addons = append(addons, map[string]any{
 			"transportUrl":  transportURL,
 			"transportName": transportName,
-			"manifest":      manifest,
+			"manifest":      manifests[i],
 		})
 	}
 
@@ -227,6 +264,9 @@ func (c *client) SetInstalledAddons(ctx context.Context, transportURLs []string)
 func (c *client) WatchHistory(ctx context.Context, limit int64) ([]map[string]any, error) {
 	if c.authKey == "" {
 		return nil, fmt.Errorf("not authenticated")
+	}
+	if limit < 0 {
+		return nil, fmt.Errorf("limit must not be negative, got %d", limit)
 	}
 
 	items, err := c.libraryItems(ctx)
@@ -256,6 +296,9 @@ func (c *client) WatchHistory(ctx context.Context, limit int64) ([]map[string]an
 func (c *client) ContinueWatching(ctx context.Context, limit int64) ([]map[string]any, error) {
 	if c.authKey == "" {
 		return nil, fmt.Errorf("not authenticated")
+	}
+	if limit < 0 {
+		return nil, fmt.Errorf("limit must not be negative, got %d", limit)
 	}
 
 	items, err := c.libraryItems(ctx)
@@ -396,43 +439,14 @@ func (c *client) request(ctx context.Context, method string, params map[string]a
 	return envelope.Result, nil
 }
 
-func extractHistoryEntries(payload any) []map[string]any {
-	switch value := payload.(type) {
-	case []any:
-		entries := make([]map[string]any, 0, len(value))
-		for _, item := range value {
-			if object, ok := item.(map[string]any); ok {
-				entries = append(entries, object)
-			}
-		}
-		return entries
-	case map[string]any:
-		for _, key := range []string{"items", "history", "entries", "results", "rows", "videos"} {
-			if nested, ok := value[key]; ok {
-				entries := extractHistoryEntries(nested)
-				if len(entries) > 0 {
-					return entries
-				}
-			}
-		}
-
-		if _, ok := value["state"]; ok {
-			return []map[string]any{value}
-		}
-
-		entries := make([]map[string]any, 0, len(value))
-		for _, item := range value {
-			if object, ok := item.(map[string]any); ok {
-				entries = append(entries, object)
-			}
-		}
-		return entries
-	default:
-		return []map[string]any{}
-	}
-}
-
 func (c *client) libraryItems(ctx context.Context) ([]map[string]any, error) {
+	c.libraries.mu.Lock()
+	if items, ok := c.libraries.byAuth[c.authKey]; ok {
+		c.libraries.mu.Unlock()
+		return items, nil
+	}
+	c.libraries.mu.Unlock()
+
 	body, err := c.request(ctx, "datastoreGet", map[string]any{
 		"collection": "libraryItem",
 		"ids":        []string{},
@@ -446,6 +460,10 @@ func (c *client) libraryItems(ctx context.Context) ([]map[string]any, error) {
 	if err := json.Unmarshal(body, &items); err != nil {
 		return nil, err
 	}
+
+	c.libraries.mu.Lock()
+	c.libraries.byAuth[c.authKey] = items
+	c.libraries.mu.Unlock()
 
 	return items, nil
 }

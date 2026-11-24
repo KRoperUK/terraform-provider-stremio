@@ -1,10 +1,12 @@
 package provider
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -239,26 +241,7 @@ func (d *installedAddonsDataSource) Read(ctx context.Context, req datasource.Rea
 	}
 
 	if sortBy != "" {
-		descending := sortOrder == "desc"
-		sort.SliceStable(addonObjects, func(i, j int) bool {
-			left := ""
-			right := ""
-			switch sortBy {
-			case "name":
-				left = strings.ToLower(addonObjects[i].Name.ValueString())
-				right = strings.ToLower(addonObjects[j].Name.ValueString())
-			case "addon_id":
-				left = strings.ToLower(addonObjects[i].AddonID.ValueString())
-				right = strings.ToLower(addonObjects[j].AddonID.ValueString())
-			case "version":
-				left = strings.ToLower(addonObjects[i].Version.ValueString())
-				right = strings.ToLower(addonObjects[j].Version.ValueString())
-			}
-			if descending {
-				return left > right
-			}
-			return left < right
-		})
+		sortAddonModels(addonObjects, sortBy, sortOrder == "desc")
 	}
 
 	addonsValue, diags := types.ListValueFrom(ctx, addonModelObjectType, addonObjects)
@@ -279,6 +262,53 @@ func (d *installedAddonsDataSource) Read(ctx context.Context, req datasource.Rea
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// sortAddonModels orders addons by name, addon ID, or version.
+// Versions compare by numeric segments, so 1.10.0 sorts after 1.9.0.
+func sortAddonModels(addonObjects []addonModel, sortBy string, descending bool) {
+	sort.SliceStable(addonObjects, func(i, j int) bool {
+		var order int
+		switch sortBy {
+		case "version":
+			order = compareVersions(addonObjects[i].Version.ValueString(), addonObjects[j].Version.ValueString())
+		case "addon_id":
+			order = strings.Compare(
+				strings.ToLower(addonObjects[i].AddonID.ValueString()),
+				strings.ToLower(addonObjects[j].AddonID.ValueString()),
+			)
+		default:
+			order = strings.Compare(
+				strings.ToLower(addonObjects[i].Name.ValueString()),
+				strings.ToLower(addonObjects[j].Name.ValueString()),
+			)
+		}
+		if descending {
+			return order > 0
+		}
+		return order < 0
+	})
+}
+
+// compareVersions orders dotted versions by numeric segments, falling back
+// to text comparison for non-numeric parts. Shorter prefixes sort first.
+func compareVersions(a, b string) int {
+	aParts := strings.Split(a, ".")
+	bParts := strings.Split(b, ".")
+	for i := 0; i < len(aParts) && i < len(bParts); i++ {
+		aNum, aErr := strconv.Atoi(aParts[i])
+		bNum, bErr := strconv.Atoi(bParts[i])
+		if aErr == nil && bErr == nil {
+			if aNum != bNum {
+				return cmp.Compare(aNum, bNum)
+			}
+			continue
+		}
+		if aParts[i] != bParts[i] {
+			return strings.Compare(aParts[i], bParts[i])
+		}
+	}
+	return cmp.Compare(len(aParts), len(bParts))
 }
 
 func containsIgnoreCase(items []string, target string) bool {

@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 func TestNewClient(t *testing.T) {
@@ -170,7 +172,7 @@ func TestLogin(t *testing.T) {
 	if err := c.Login(context.Background(), "a@b.c", "pw"); err != nil {
 		t.Fatalf("Login: %v", err)
 	}
-	if c.authKey != "auth-123" || c.userID != "user-1" || c.email != "a@b.c" {
+	if c.authKey != "auth-123" || c.userID != "user-1" {
 		t.Fatalf("login did not populate client: %+v", c)
 	}
 }
@@ -342,6 +344,97 @@ func TestWatchHistoryLimit(t *testing.T) {
 	}
 }
 
+func TestLibraryItemsSharedBetweenClones(t *testing.T) {
+	t.Parallel()
+
+	var datastoreCalls int
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/login", func(w http.ResponseWriter, r *http.Request) {
+		writeEnvelope(t, w, map[string]any{
+			"authKey": "auth-1",
+			"user":    map[string]any{"_id": "user-1", "email": "a@b.c"},
+		}, nil)
+	})
+	mux.HandleFunc("/api/datastoreGet", func(w http.ResponseWriter, r *http.Request) {
+		datastoreCalls++
+		writeEnvelope(t, w, []map[string]any{
+			{"type": "movie", "state": map[string]any{"timeWatched": float64(10)}},
+		}, nil)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL)
+	if err := c.Login(context.Background(), "a@b.c", "pw"); err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	if _, err := c.WatchHistory(context.Background(), 0); err != nil {
+		t.Fatalf("WatchHistory: %v", err)
+	}
+	if _, err := c.clone().ContinueWatching(context.Background(), 0); err != nil {
+		t.Fatalf("ContinueWatching: %v", err)
+	}
+
+	if datastoreCalls != 1 {
+		t.Fatalf("expected 1 library fetch shared between clones, got %d", datastoreCalls)
+	}
+}
+
+func TestHistoryNegativeLimit(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, "https://api.strem.io")
+	c.authKey = "auth-123"
+
+	if _, err := c.WatchHistory(context.Background(), -1); err == nil {
+		t.Fatal("expected error for negative watch history limit")
+	}
+	if _, err := c.ContinueWatching(context.Background(), -1); err == nil {
+		t.Fatal("expected error for negative continue watching limit")
+	}
+}
+
+func TestSetInstalledAddonsPreservesOrder(t *testing.T) {
+	t.Parallel()
+
+	var collectionSet map[string]any
+
+	mux := http.NewServeMux()
+	for _, name := range []string{"m1", "m2", "m3"} {
+		mux.HandleFunc("/"+name+".json", func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "org." + r.URL.Path, "name": "Name " + r.URL.Path})
+		})
+	}
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	mux.HandleFunc("/api/addonCollectionSet", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(body, &collectionSet)
+		writeEnvelope(t, w, map[string]any{"success": true}, nil)
+	})
+
+	c := newTestClient(t, srv.URL)
+	c.authKey = "auth-123"
+
+	urls := []string{srv.URL + "/m1.json", srv.URL + "/m2.json", srv.URL + "/m3.json"}
+	if err := c.SetInstalledAddons(context.Background(), urls); err != nil {
+		t.Fatalf("SetInstalledAddons: %v", err)
+	}
+
+	addons, ok := collectionSet["addons"].([]any)
+	if !ok || len(addons) != 3 {
+		t.Fatalf("expected 3 addons in collectionSet payload, got: %v", collectionSet["addons"])
+	}
+	for i, want := range urls {
+		entry, ok := addons[i].(map[string]any)
+		if !ok || entry["transportUrl"] != want {
+			t.Fatalf("addon %d out of order, got: %v", i, addons[i])
+		}
+	}
+}
+
 func TestSetInstalledAddons(t *testing.T) {
 	t.Parallel()
 
@@ -405,6 +498,7 @@ func TestInt64FromAny(t *testing.T) {
 		{in: int32(7), want: 7, ok: true},
 		{in: int64(9), want: 9, ok: true},
 		{in: float64(12.9), want: 12, ok: true},
+		{in: float32(2.5), want: 2, ok: true},
 		{in: "nope", want: 0, ok: false},
 		{in: nil, want: 0, ok: false},
 	}
@@ -442,30 +536,45 @@ func TestResourceNamesFromManifest(t *testing.T) {
 	}
 }
 
-func TestExtractHistoryEntries(t *testing.T) {
+func TestSortAddonModelsByVersion(t *testing.T) {
 	t.Parallel()
 
-	// Array of objects
-	got := extractHistoryEntries([]any{
-		map[string]any{"id": 1},
-		"skip-me",
-		map[string]any{"id": 2},
-	})
-	if len(got) != 2 {
-		t.Fatalf("expected 2 entries from array, got %d", len(got))
+	objs := []addonModel{
+		{Version: types.StringValue("1.10.0")},
+		{Version: types.StringValue("1.9.0")},
+		{Version: types.StringValue("1.2.0")},
+	}
+	sortAddonModels(objs, "version", false)
+
+	want := []string{"1.2.0", "1.9.0", "1.10.0"}
+	for i, version := range want {
+		if objs[i].Version.ValueString() != version {
+			t.Fatalf("position %d = %q, want %q", i, objs[i].Version.ValueString(), version)
+		}
+	}
+}
+
+func TestMapWatchHistoryEntryProgress(t *testing.T) {
+	t.Parallel()
+
+	mapped := mapWatchHistoryEntry(map[string]any{
+		"_id":   "m1",
+		"name":  "Example",
+		"type":  "movie",
+		"state": map[string]any{"timeOffset": float64(30), "duration": float64(120)},
+	}, 0)
+	if got := mapped.Progress.ValueFloat64(); got != 25 {
+		t.Fatalf("progress = %v, want 25", got)
+	}
+	if !mapped.VideoID.IsNull() {
+		t.Fatalf("video_id should be null when absent, got %q", mapped.VideoID.ValueString())
 	}
 
-	// Nested under a known key
-	got = extractHistoryEntries(map[string]any{
-		"items": []any{map[string]any{"id": 1}},
-	})
-	if len(got) != 1 {
-		t.Fatalf("expected 1 entry from nested key, got %d", len(got))
+	sparse := mapWatchHistoryEntry(map[string]any{}, 3)
+	if got := sparse.ID.ValueString(); got != "entry-3" {
+		t.Fatalf("id = %q, want entry-3 fallback", got)
 	}
-
-	// Single object carrying state
-	got = extractHistoryEntries(map[string]any{"state": map[string]any{}})
-	if len(got) != 1 {
-		t.Fatalf("expected single state object to be wrapped, got %d", len(got))
+	if !sparse.TimeOffset.IsNull() || !sparse.Progress.IsNull() {
+		t.Fatal("missing numbers should map to null")
 	}
 }

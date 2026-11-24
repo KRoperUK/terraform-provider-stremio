@@ -286,17 +286,8 @@ func firstInt64(source map[string]any, keys []string) (int64, bool) {
 		if !exists {
 			continue
 		}
-		switch converted := value.(type) {
-		case int:
-			return int64(converted), true
-		case int32:
-			return int64(converted), true
-		case int64:
+		if converted, ok := int64FromAny(value); ok {
 			return converted, true
-		case float32:
-			return int64(converted), true
-		case float64:
-			return int64(converted), true
 		}
 	}
 	return 0, false
