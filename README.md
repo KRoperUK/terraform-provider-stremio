@@ -3,7 +3,7 @@
 [![Release Please](https://github.com/kroperuk/terraform-provider-stremio/actions/workflows/release.yml/badge.svg)](https://github.com/kroperuk/terraform-provider-stremio/actions/workflows/release.yml)
 [![Current Version](https://img.shields.io/github/v/release/kroperuk/terraform-provider-stremio?label=version)](https://github.com/kroperuk/terraform-provider-stremio/releases)
 [![Terraform Registry](https://img.shields.io/badge/Terraform%20Registry-KRoperUK%2Fstremio-7B42BC?logo=terraform)](https://registry.terraform.io/providers/KRoperUK/stremio/latest)
-[![Go Version](https://img.shields.io/badge/go-1.25%2B-00ADD8?logo=go)](https://go.dev/dl/)
+[![Go Version](https://img.shields.io/badge/go-1.26%2B-00ADD8?logo=go)](https://go.dev/dl/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Terraform provider for Stremio account workflows.
@@ -22,7 +22,7 @@ Early release / developer preview.
 
 ## Requirements
 
-- Go 1.25+
+- Go 1.26+
 - Terraform 1.6+
 
 ## Build
