@@ -238,6 +238,44 @@ func TestInstalledAddons(t *testing.T) {
 	}
 }
 
+func TestClientCloneIsolatesAuth(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var got map[string]any
+		_ = json.Unmarshal(body, &got)
+		email, _ := got["email"].(string)
+		writeEnvelope(t, w, map[string]any{
+			"authKey": "auth-for-" + email,
+			"user":    map[string]any{"_id": "user-" + email, "email": email},
+		}, nil)
+	}))
+	defer srv.Close()
+
+	base := newTestClient(t, srv.URL)
+
+	first := base.clone()
+	second := base.clone()
+
+	if err := first.Login(context.Background(), "a@example.com", "pw"); err != nil {
+		t.Fatalf("first Login: %v", err)
+	}
+	if err := second.Login(context.Background(), "b@example.com", "pw"); err != nil {
+		t.Fatalf("second Login: %v", err)
+	}
+
+	if first.authKey != "auth-for-a@example.com" {
+		t.Fatalf("first client holds %q, want its own login", first.authKey)
+	}
+	if second.authKey != "auth-for-b@example.com" {
+		t.Fatalf("second client holds %q, want its own login", second.authKey)
+	}
+	if base.authKey != "" {
+		t.Fatalf("base client holds %q, want untouched", base.authKey)
+	}
+}
+
 func TestInstalledAddonsNotAuthenticated(t *testing.T) {
 	t.Parallel()
 

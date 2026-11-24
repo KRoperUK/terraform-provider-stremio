@@ -65,6 +65,14 @@ func newClient(baseURL string) (*client, error) {
 	}, nil
 }
 
+// clone returns an independent client sharing the transport. Auth state is
+// per-copy: each resource or data source instance logs in on its own copy,
+// so concurrent operations on different accounts never share credentials.
+func (c *client) clone() *client {
+	cp := *c
+	return &cp
+}
+
 func (c *client) Register(ctx context.Context, email, password string) error {
 	payload := map[string]any{
 		"email":    email,

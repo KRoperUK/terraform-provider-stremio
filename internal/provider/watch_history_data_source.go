@@ -158,7 +158,7 @@ func (d *watchHistoryDataSource) Configure(_ context.Context, req datasource.Con
 		return
 	}
 
-	d.client = c
+	d.client = c.clone()
 }
 
 func (d *watchHistoryDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

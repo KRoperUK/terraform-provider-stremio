@@ -53,6 +53,9 @@ func (r *accountResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:            true,
 				Description:         "Stremio account email.",
 				MarkdownDescription: "Email address for the Stremio account.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"password": schema.StringAttribute{
 				Required:            true,
@@ -95,7 +98,7 @@ func (r *accountResource) Configure(_ context.Context, req resource.ConfigureReq
 		return
 	}
 
-	r.client = c
+	r.client = c.clone()
 }
 
 func (r *accountResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -243,7 +246,14 @@ func (r *accountResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 	err := r.client.Login(ctx, state.Email.ValueString(), state.Password.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to authenticate before deleting account", err.Error())
+		// The account is unreachable: deleted out of band, or the API is
+		// down. Either way there is nothing to delete, so drop the state
+		// instead of failing every destroy forever.
+		resp.Diagnostics.AddWarning(
+			"Unable to authenticate before deleting account, removing from state",
+			err.Error(),
+		)
+		resp.State.RemoveResource(ctx)
 		return
 	}
 
