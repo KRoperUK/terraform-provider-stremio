@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.3](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.5.2...v1.5.3) (2026-11-25)
+
+
+### Bug Fixes
+
+* **provider:** cap API response size, truncate error bodies, warn on state password ([#55](https://github.com/KRoperUK/terraform-provider-stremio/issues/55)) ([239a61b](https://github.com/KRoperUK/terraform-provider-stremio/commit/239a61b1219eb494ffdd64feab831b6153e57dd1))
+
 ## [1.5.2](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.5.1...v1.5.2) (2026-11-25)
 
 
