@@ -5,6 +5,7 @@ subcategory: ""
 description: |-
   Manages a Stremio account using email and password credentials.
   Use this resource to create a new account, or import an existing account with email:password.
+  ~> Note The password is stored in Terraform state (needed for delete and import). Protect the state file as a secret; after changing the Stremio password out of band, update the value and terraform apply to re-authenticate.
   Example Usage
   
   resource "stremio_account" "user" {
