@@ -157,6 +157,47 @@ func TestRequestEmptyResult(t *testing.T) {
 	}
 }
 
+func TestRequestOversizeResponseRejected(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(make([]byte, maxResponseBytes+1024))
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL)
+	_, err := c.request(context.Background(), "datastoreGet", map[string]any{}, "secret")
+	if err == nil {
+		t.Fatal("expected error for oversize response")
+	}
+	if !strings.Contains(err.Error(), "exceeds") {
+		t.Fatalf("expected size error, got: %v", err)
+	}
+}
+
+func TestRequestHTTPErrorBodyTruncated(t *testing.T) {
+	t.Parallel()
+
+	big := strings.Repeat("y", maxErrorBodyChars+1500)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = io.WriteString(w, big)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL)
+	_, err := c.request(context.Background(), "login", map[string]any{}, "")
+	if err == nil {
+		t.Fatal("expected error from HTTP 502")
+	}
+	if !strings.Contains(err.Error(), "(truncated)") {
+		t.Fatalf("expected truncated marker in error, got length %d", len(err.Error()))
+	}
+	if strings.Contains(err.Error(), big) {
+		t.Fatal("error must not contain the full response body")
+	}
+}
+
 func TestLogin(t *testing.T) {
 	t.Parallel()
 
