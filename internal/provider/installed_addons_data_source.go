@@ -142,7 +142,7 @@ func (d *installedAddonsDataSource) Configure(_ context.Context, req datasource.
 		return
 	}
 
-	d.client = c
+	d.client = c.clone()
 }
 
 func (d *installedAddonsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
