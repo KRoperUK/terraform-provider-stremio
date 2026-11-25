@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.2](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.5.1...v1.5.2) (2026-11-25)
+
+
+### Bug Fixes
+
+* **provider:** isolate auth per client, replace on email change, tolerate deleted accounts ([#49](https://github.com/KRoperUK/terraform-provider-stremio/issues/49)) ([266b897](https://github.com/KRoperUK/terraform-provider-stremio/commit/266b89789cd011b8c41c87f5ce7c9bc619654101))
+* **provider:** share library fetch, sort versions numerically, drop dead code ([#50](https://github.com/KRoperUK/terraform-provider-stremio/issues/50)) ([a9b6f7c](https://github.com/KRoperUK/terraform-provider-stremio/commit/a9b6f7c198c6accdcf8503f0a57fb023f92d1c13))
+* **security:** https-only base_url, capped manifests, safe script JSON, sensitive example vars ([#48](https://github.com/KRoperUK/terraform-provider-stremio/issues/48)) ([dae5484](https://github.com/KRoperUK/terraform-provider-stremio/commit/dae5484e380b511448f87291aa43a2acc5cdcc18))
+
 ## [1.5.1](https://github.com/KRoperUK/terraform-provider-stremio/compare/v1.5.0...v1.5.1) (2026-06-07)
 
 
