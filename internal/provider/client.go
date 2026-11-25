@@ -356,6 +356,23 @@ func isLoopbackHost(host string) bool {
 // user-supplied, and an unbounded read lets one bad URL exhaust memory.
 const maxManifestBytes = 10 << 20 // 10 MiB
 
+// maxResponseBytes caps Stremio API responses (notably datastoreGet, which
+// returns the whole library): without a cap one large library exhausts
+// provider memory in a single read.
+const maxResponseBytes = 25 << 20 // 25 MiB
+
+// maxErrorBodyChars keeps server replies out of logs in full: errors carry
+// a prefix of the body, not the whole thing.
+const maxErrorBodyChars = 500
+
+func truncateForError(body []byte) string {
+	text := strings.TrimSpace(string(body))
+	if len(text) > maxErrorBodyChars {
+		return text[:maxErrorBodyChars] + "… (truncated)"
+	}
+	return text
+}
+
 func (c *client) fetchManifest(ctx context.Context, transportURL string) (map[string]any, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, transportURL, nil)
 	if err != nil {
@@ -414,13 +431,16 @@ func (c *client) request(ctx context.Context, method string, params map[string]a
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
 	if err != nil {
 		return nil, err
 	}
+	if len(body) > maxResponseBytes {
+		return nil, fmt.Errorf("stremio %s response exceeds %d bytes", method, maxResponseBytes)
+	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, truncateForError(body))
 	}
 
 	var envelope apiEnvelope

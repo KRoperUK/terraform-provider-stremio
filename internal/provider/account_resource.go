@@ -39,7 +39,7 @@ func (r *accountResource) Metadata(_ context.Context, req resource.MetadataReque
 func (r *accountResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description:         "Creates or imports a Stremio account using email/password.",
-		MarkdownDescription: "Manages a Stremio account using email and password credentials.\n\nUse this resource to create a new account, or import an existing account with `email:password`.\n\n## Example Usage\n\n```hcl\nresource \"stremio_account\" \"user\" {\n  email    = var.stremio_email\n  password = var.stremio_password\n}\n```\n\n## Import\n\n```bash\nterraform import stremio_account.user 'user@example.com:super-secret-password'\n```",
+		MarkdownDescription: "Manages a Stremio account using email and password credentials.\n\nUse this resource to create a new account, or import an existing account with `email:password`.\n\n~> **Note** The password is stored in Terraform state (needed for delete and import). Protect the state file as a secret; after changing the Stremio password out of band, update the value and `terraform apply` to re-authenticate.\n\n## Example Usage\n\n```hcl\nresource \"stremio_account\" \"user\" {\n  email    = var.stremio_email\n  password = var.stremio_password\n}\n```\n\n## Import\n\n```bash\nterraform import stremio_account.user 'user@example.com:super-secret-password'\n```",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
