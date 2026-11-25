@@ -1,5 +1,3 @@
-create_accounts = false
-
 accounts = {
   primary = {
     email    = "your-primary-email@example.com"

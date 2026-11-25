@@ -57,6 +57,12 @@ func newClient(baseURL string) (*client, error) {
 		return nil, fmt.Errorf("base_url must include scheme and host")
 	}
 
+	// Credentials travel in request bodies, so anything but HTTPS would
+	// send them in cleartext. Local test servers are exempt.
+	if parsed.Scheme != "https" && !isLoopbackHost(parsed.Hostname()) {
+		return nil, fmt.Errorf("base_url must use https, got %q", parsed.Scheme)
+	}
+
 	return &client{
 		baseURL: parsed,
 		httpClient: &http.Client{
@@ -299,6 +305,14 @@ func (c *client) DeleteUser(ctx context.Context, password string) error {
 	return nil
 }
 
+func isLoopbackHost(host string) bool {
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+// maxManifestBytes caps addon manifest downloads: transport URLs are
+// user-supplied, and an unbounded read lets one bad URL exhaust memory.
+const maxManifestBytes = 10 << 20 // 10 MiB
+
 func (c *client) fetchManifest(ctx context.Context, transportURL string) (map[string]any, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, transportURL, nil)
 	if err != nil {
@@ -311,9 +325,12 @@ func (c *client) fetchManifest(ctx context.Context, transportURL string) (map[st
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxManifestBytes+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(body) > maxManifestBytes {
+		return nil, fmt.Errorf("manifest exceeds %d bytes", maxManifestBytes)
 	}
 
 	if resp.StatusCode >= 400 {
