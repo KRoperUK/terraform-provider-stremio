@@ -1,7 +1,7 @@
 {
     "version": 1,
     "metadata": {
-        "provider_version": "1.5.1",
+        "provider_version": "1.5.2",
         "protocol_versions": [
             "6.0"
         ]
